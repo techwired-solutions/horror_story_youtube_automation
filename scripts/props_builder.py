@@ -21,8 +21,18 @@ class PropsBuilder:
         words_data = []
         current_word = ""
         current_start = 0
+        in_tag = False
         
         for char, start, end in zip(characters, start_times, end_times):
+            if char == '[':
+                in_tag = True
+                continue
+            if char == ']':
+                in_tag = False
+                continue
+            if in_tag:
+                continue
+
             if char.isspace():
                 if current_word:
                     words_data.append({
