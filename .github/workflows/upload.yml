@@ -1,0 +1,73 @@
+name: Render and Upload Horror Video
+
+on:
+  workflow_dispatch:
+    inputs:
+      topic:
+        description: 'Horror story topic'
+        required: true
+        default: 'The Midnight Stalker'
+
+jobs:
+  render:
+    runs-on: ubuntu-24.04
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+      ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+      YOUTUBE_TOKEN_JSON: ${{ secrets.YOUTUBE_TOKEN_JSON }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y libnss3 libdbus-1-3 libatk1.0-0 libasound2t64 libxrandr2 libxkbcommon-dev libxfixes3 libxcomposite1 libxdamage1 libgbm-dev libcups2 libcairo2 libpango-1.0-0 libatk-bridge2.0-0
+
+      - name: Install Playwright Dependencies
+        run: |
+          npx playwright install-deps
+          npx playwright install chromium
+
+      - name: Install Python Dependencies
+        run: |
+          pip install -r scripts/requirements.txt
+
+      - name: Install Remotion Dependencies
+        run: |
+          cd remotion-video
+          npm install
+
+      - name: Run Automation Pipeline
+        run: |
+          python -m scripts.orchestrator --topic "${{ github.event.inputs.topic }}"
+
+      - name: Render Video
+        run: |
+          cd remotion-video
+          npx remotion render Shorts out.mp4 --props public/props.json
+
+      - name: Upload to YouTube
+        run: |
+          # Placeholder for upload script
+          # python -m scripts.uploader --file remotion-video/out.mp4
+          echo "Video rendered and ready for upload."
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: horror-video
+          path: remotion-video/out.mp4

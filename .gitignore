@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Project secrets
+client_secret.json
+token.pickle
+token.json
+
+# Remotion
+remotion-video/node_modules
+remotion-video/out.mp4
+remotion-video/public/assets/
+remotion-video/public/props.json
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
