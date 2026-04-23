@@ -55,15 +55,17 @@ class PropsBuilder:
             
         return words_data
 
-    def build_props(self, topic: str, output_path: str = "remotion-video/public/props.json"):
-        script = self.script_gen.generate_horror_script(topic)
-        if not script:
-            return None
-
-        full_narration = " ".join([scene["text"] for scene in script["scenes"]])
+    def build_props(self, part_data, title, part_number=1, output_path="remotion-video/public/props.json"):
+        """
+        Builds props for a specific part of a script.
+        """
+        scenes = part_data["scenes"]
+        full_narration = " ".join([scene["text"] for scene in scenes])
         
-        # Generate Audio
-        audio_result = self.audio_gen.generate_speech(full_narration, output_path="remotion-video/public/assets/audio/speech.mp3")
+        # Generate Audio (Part-specific)
+        audio_filename = f"assets/audio/speech_part_{part_number}.mp3"
+        audio_output_path = os.path.join("remotion-video/public", audio_filename)
+        audio_result = self.audio_gen.generate_speech(full_narration, output_path=audio_output_path)
         if not audio_result:
             return None
 
@@ -75,18 +77,18 @@ class PropsBuilder:
             full_narration
         )
 
-        # Download Assets and Generate SFX
+        # Download Assets and Generate SFX (Part-specific)
         scenes_with_assets = []
-        for i, scene in enumerate(script["scenes"]):
+        for i, scene in enumerate(scenes):
             # 1. Generate Image
             image_url = self.asset_fetcher.generate_image(scene["image_prompt"])
-            image_path = f"assets/images/scene_{i}.png"
+            image_path = f"assets/images/part_{part_number}_scene_{i}.png"
             local_image_path = os.path.join("remotion-video/public", image_path)
             self.asset_fetcher.download_asset(image_url, local_image_path)
             scene["image_url"] = image_path
             
             # 2. Generate Scene SFX
-            sfx_path = f"assets/audio/sfx_{i}.mp3"
+            sfx_path = f"assets/audio/part_{part_number}_sfx_{i}.mp3"
             local_sfx_path = os.path.join("remotion-video/public", sfx_path)
             self.audio_gen.generate_sfx(scene["sfx_prompt"], output_path=local_sfx_path)
             scene["sfx_url"] = sfx_path
@@ -94,16 +96,16 @@ class PropsBuilder:
             scenes_with_assets.append(scene)
 
         # Generate SFX (Atmosphere)
-        sfx_path = "assets/audio/atmosphere.mp3"
+        atmosphere_filename = f"assets/audio/atmosphere_part_{part_number}.mp3"
         self.audio_gen.generate_sfx("deep creepy horror atmosphere with subtle whispers", 
-                                   output_path=os.path.join("remotion-video/public", sfx_path))
+                                   output_path=os.path.join("remotion-video/public", atmosphere_filename))
 
         final_props = {
-            "title": script["title"],
+            "title": title if part_number == 1 else f"{title} - Part {part_number}",
             "scenes": scenes_with_assets,
             "subtitles": words,
-            "audio_url": "assets/audio/speech.mp3",
-            "atmosphere_url": sfx_path,
+            "audio_url": audio_filename,
+            "atmosphere_url": atmosphere_filename,
             "fps": 30
         }
 
@@ -111,7 +113,7 @@ class PropsBuilder:
         with open(output_path, "w") as f:
             json.dump(final_props, f, indent=4)
         
-        logger.success(f"Props file generated at {output_path}")
+        logger.success(f"Props file generated for Part {part_number} at {output_path}")
         return final_props
 
 if __name__ == "__main__":

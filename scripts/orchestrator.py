@@ -30,56 +30,76 @@ def main():
         selector = DailyTopicSelector()
         topic = selector.get_daily_topic()
 
-    # 2. Build Props and Fetch Assets
+    # 2. Build Script
     logger.info(f"Starting automation for topic: {topic}")
     builder = PropsBuilder()
-    props = builder.build_props(topic)
-
-    if not props:
-        logger.error("Failed to build props. Aborting.")
+    from scripts.script_gen import ScriptGenerator
+    script_gen = ScriptGenerator()
+    script = script_gen.generate_horror_script(topic)
+    
+    if not script or "parts" not in script:
+        logger.error("Failed to generate script or invalid format. Aborting.")
         return
 
-    # Generate Thumbnail Image (Square or 16:9 for YouTube, but portrait for Shorts)
+    # Generate Common Thumbnail
     from scripts.asset_fetcher import AssetFetcher
     fetcher = AssetFetcher()
     thumbnail_prompt = f"Scary, cinematic, high-contrast horror thumbnail for: {topic}. Dark, eerie, highly detailed, sharp focus."
-    thumbnail_url = fetcher.generate_image(thumbnail_prompt, width=1280, height=720) # YouTube standard
+    thumbnail_url = fetcher.generate_image(thumbnail_prompt, width=1280, height=720)
     thumbnail_path = os.path.abspath("remotion-video/public/assets/images/thumbnail.png")
     fetcher.download_asset(thumbnail_url, thumbnail_path)
 
-    logger.success("Assets fetched and props.json generated.")
+    # Process Each Part
+    for part in script["parts"]:
+        part_num = part["part_number"]
+        total_parts = len(script["parts"])
+        logger.info(f"Processing Part {part_num}/{total_parts}...")
 
-    # 3. Render
-    output_file = os.path.abspath("remotion-video/out.mp4")
-    if args.render or args.upload:
-        logger.info("Triggering Remotion render...")
-        render_cmd = f"cd remotion-video && npx remotion render Shorts {output_file} --props public/props.json"
-        os.system(render_cmd)
+        # Build Props for this part
+        props = builder.build_props(part, script["title"], part_number=part_num)
+        if not props:
+            logger.error(f"Failed to build props for Part {part_num}. Skipping.")
+            continue
 
-    # 4. Upload
-    if args.upload:
-        from scripts.uploader import YouTubeUploader
-        logger.info("Starting YouTube upload...")
-        uploader = YouTubeUploader()
-        
-        # Build optimized title and description
-        title = f"{props['title']} | Scary Horror Story #shorts #horror"
-        description = f"{props['title']}\n\n"
-        description += "Prepare for a chilling journey into the unknown. This horror story will keep you on the edge of your seat.\n\n"
-        description += "#horror #scarystories #scary #creepy #paranormal #shorts #americanhorror"
-        
-        tags = ["horror", "scary stories", "creepy", "ghost stories", "urban legends", "horror shorts", "american horror"]
-        
-        video_id = uploader.upload_video(
-            file_path=output_file,
-            title=title,
-            description=description,
-            tags=tags,
-            privacy_status="public"
-        )
+        # 3. Render
+        output_file = os.path.abspath(f"remotion-video/out_part_{part_num}.mp4")
+        if args.render or args.upload:
+            logger.info(f"Triggering Remotion render for Part {part_num}...")
+            render_cmd = f"cd remotion-video && npx remotion render Shorts {output_file} --props public/props.json"
+            os.system(render_cmd)
 
-        if video_id:
-            uploader.set_thumbnail(video_id, thumbnail_path)
+        # 4. Upload
+        if args.upload:
+            from scripts.uploader import YouTubeUploader
+            logger.info(f"Starting YouTube upload for Part {part_num}...")
+            uploader = YouTubeUploader()
+            
+            # Build part-specific title and description
+            title = props["title"]
+            if total_parts > 1:
+                title = f"{script['title']} - Part {part_num} | Scary Horror Story #shorts"
+            else:
+                title = f"{script['title']} | Scary Horror Story #shorts #horror"
+
+            description = f"{script['title']} - Part {part_num}\n\n"
+            if part_num < total_parts:
+                description += f"Stay tuned for Part {part_num + 1}! Subscribe and hit the bell.\n\n"
+            
+            description += "Prepare for a chilling journey into the unknown.\n\n"
+            description += "#horror #scarystories #scary #creepy #shorts #part" + str(part_num)
+            
+            tags = ["horror", "scary stories", "creepy", "ghost stories", "horror shorts", f"part {part_num}"]
+            
+            video_id = uploader.upload_video(
+                file_path=output_file,
+                title=title,
+                description=description,
+                tags=tags,
+                privacy_status="public"
+            )
+
+            if video_id:
+                uploader.set_thumbnail(video_id, thumbnail_path)
 
 if __name__ == "__main__":
     main()

@@ -17,29 +17,32 @@ class ScriptGenerator:
         
         Target Audience: American viewers (Focus on real scary incidents, true paranormal cases, ancient cultural folklore, or terrifying "did you know" facts).
         
-        The script should be structured for a 50-60 second video.
+        The script should be broken into "parts" if the story is long. Each part MUST be under 1 minute of narration (approx. 130-150 words).
+        If the story fits in one part, only return one part.
         
-        CRITICAL INSTRUCTIONS FOR SCARINESS:
-        1. Narrative Style: Use ElevenLabs emotional tags like [whispers], [sighs], [giggles], [trembling], [excited], and [slow pacing] directly in the narration text. These tags MUST be in lowercase and in square brackets.
-        2. Realism & Folklore: Focus on "True" stories. Use hooks like "Did you know that in [Culture]..." or "This historical incident in [City/Year] still haunts...". Pull from real urban legends, documented paranormal cases, or eerie cultural facts (e.g. Japanese legends like Okiku, or modern creepy encounters like Black Eyed Children).
-        3. Character Consistency: If there is a protagonist, provide a detailed 'character_description' (e.g., "a 10-year-old boy with messy blonde hair and a striped blue shirt").
-        3. Visuals: For each scene, provide a highly detailed 'image_prompt' suitable for AI generation. Always include the 'character_description' if the character is in the scene.
-        4. SFX: Suggest a specific 'sfx_prompt' for each scene (e.g., "heavy breathing and distant floorboard creak").
-        5. Animations: For each scene, specify an 'animation_type' from: [zoom, pop, slide_up, slide_down, fade].
+        CRITICAL INSTRUCTIONS FOR SCARINESS & STRUCTURE:
+        1. Narrative Style: Use ElevenLabs emotional tags like [whispers], [sighs], [giggles], [trembling], [excited], and [slow pacing] directly in the narration text.
+        2. Realism & Folklore: Focus on "True" stories, urban legends, or documented cases.
+        3. Multi-Part Hooks: If there is a next part, the narration MUST end with a cliffhanger followed by "Subscribe for Part [Next Part Number]".
+        4. Part Intro: If it's Part 2 or higher, start with "Part [Number] of [Title]".
+        5. Visuals: Provide a 'character_description' for consistency and 'image_prompt' for each scene.
         
         Format the output as a JSON object:
         {{
             "title": "Viral Story Title",
-            "character_description": "detailed visual description for consistency",
-            "scenes": [
+            "character_description": "detailed visual description",
+            "parts": [
                 {{
-                    "text": "Narration text with [Tags] here...",
-                    "image_prompt": "Cinematic horror style image of...",
-                    "sfx_prompt": "sound effect description",
-                    "animation_type": "zoom",
-                    "duration_estimate": 8
-                }},
-                ...
+                    "part_number": 1,
+                    "scenes": [
+                        {{
+                            "text": "Narration text...",
+                            "image_prompt": "Prompt...",
+                            "sfx_prompt": "sound effect",
+                            "animation_type": "zoom"
+                        }}
+                    ]
+                }}
             ]
         }}
         """
