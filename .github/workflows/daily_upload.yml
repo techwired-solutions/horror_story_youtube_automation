@@ -34,7 +34,9 @@ jobs:
         npm install
 
     - name: Install Chrome
-      run: npx remotion browser install
+      run: |
+        cd remotion-video
+        npx remotion browser install
 
     - name: Run Orchestrator
       env:
