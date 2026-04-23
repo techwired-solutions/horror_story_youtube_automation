@@ -31,7 +31,8 @@ jobs:
     - name: Install Node Dependencies
       run: |
         cd remotion-video
-        npm install
+        rm -rf node_modules package-lock.json
+        npm install --include=optional
 
     - name: Install Chrome
       run: |
