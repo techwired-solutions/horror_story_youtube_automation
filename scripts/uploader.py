@@ -50,13 +50,20 @@ class YouTubeUploader:
             return False
 
         logger.info(f"Uploading thumbnail for video {video_id}...")
-        request = self.youtube.thumbnails().set(
-            videoId=video_id,
-            media_body=MediaFileUpload(thumbnail_path)
-        )
-        response = request.execute()
-        logger.success(f"Thumbnail uploaded successfully for video {video_id}!")
-        return response
+        try:
+            request = self.youtube.thumbnails().set(
+                videoId=video_id,
+                media_body=MediaFileUpload(thumbnail_path)
+            )
+            response = request.execute()
+            logger.success(f"Thumbnail uploaded successfully for video {video_id}!")
+            return response
+        except googleapiclient.errors.HttpError as e:
+            if "permissions" in str(e).lower():
+                logger.warning(f"Could not set thumbnail: The channel might not have custom thumbnails enabled (requires phone verification). Error: {e}")
+            else:
+                logger.error(f"Failed to set thumbnail for video {video_id}: {e}")
+            return False
 
     def upload_video(self, file_path, title, description, tags=None, category_id="24", privacy_status="public"):
         """
