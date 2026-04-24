@@ -4,11 +4,8 @@ import { Main } from './Main';
 import './index.css';
 
 export const RemotionRoot: React.FC = () => {
-  const inputProps = getInputProps();
-  
-  // We can dynamically set the duration based on props if needed
-  // For now, we'll default to 60 seconds (1800 frames at 30fps)
-  const durationInFrames = 1800; 
+  const inputProps = getInputProps() as any;
+  const durationInFrames = inputProps.duration_in_frames || 1800; 
 
   return (
     <>

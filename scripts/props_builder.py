@@ -100,12 +100,16 @@ class PropsBuilder:
         self.audio_gen.generate_sfx("deep creepy horror atmosphere with subtle whispers", 
                                    output_path=os.path.join("remotion-video/public", atmosphere_filename))
 
+        total_duration_seconds = alignment["character_end_times_seconds"][-1]
+        duration_in_frames = int(total_duration_seconds * 30) + 30 # 1 second buffer
+
         final_props = {
             "title": title if part_number == 1 else f"{title} - Part {part_number}",
             "scenes": scenes_with_assets,
             "subtitles": words,
             "audio_url": audio_filename,
             "atmosphere_url": atmosphere_filename,
+            "duration_in_frames": duration_in_frames,
             "fps": 30
         }
 

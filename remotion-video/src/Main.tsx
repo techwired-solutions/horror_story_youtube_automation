@@ -38,8 +38,13 @@ export const Main: React.FC = () => {
     scenes: [],
     subtitles: [],
     audio_url: "",
-    atmosphere_url: ""
+    atmosphere_url: "",
+    duration_in_frames: durationInFrames
   };
+
+  // Calculate proportional durations to fit the actual audio length
+  const totalEstimatedDuration = props.scenes.reduce((acc, s) => acc + (s.duration_estimate || 5), 0);
+  const durationMultiplier = durationInFrames / (totalEstimatedDuration * fps);
 
   return (
     <div className="flex-1 bg-black">
@@ -56,7 +61,7 @@ export const Main: React.FC = () => {
       {/* 3. Visual Scenes */}
       <Series>
         {props.scenes.map((scene, index) => {
-          const sceneDuration = scene.duration_estimate * fps;
+          const sceneDuration = Math.floor((scene.duration_estimate || 5) * fps * durationMultiplier);
           return (
             <Series.Sequence
               key={index}

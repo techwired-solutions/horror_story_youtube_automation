@@ -39,7 +39,8 @@ class ScriptGenerator:
                             "text": "Narration text...",
                             "image_prompt": "Prompt...",
                             "sfx_prompt": "sound effect",
-                            "animation_type": "zoom"
+                            "animation_type": "zoom",
+                            "duration_estimate": 8
                         }}
                     ]
                 }}
