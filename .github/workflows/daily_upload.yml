@@ -8,6 +8,8 @@ on:
 jobs:
   build-and-upload:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write
 
     steps:
     - name: Checkout Code
@@ -54,3 +56,9 @@ jobs:
         YOUTUBE_TOKEN_PICKLE_BASE64: ${{ secrets.YOUTUBE_TOKEN_PICKLE_BASE64 }}
       run: |
         python -m scripts.orchestrator --render --upload
+
+    - name: Commit and Push Topic History
+      uses: stefanzweifel/git-auto-commit-action@v5
+      with:
+        commit_message: "Update daily horror topic history [skip ci]"
+        file_pattern: 'assets/used_topics.txt'
