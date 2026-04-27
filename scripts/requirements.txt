@@ -1,5 +1,4 @@
 google-generativeai
-elevenlabs
 requests
 python-dotenv
 google-api-python-client
@@ -7,3 +6,9 @@ google-auth-oauthlib
 google-auth-httplib2
 loguru
 pydantic
+numpy
+soundfile
+edge-tts
+huggingface_hub
+kokoro>=0.9.4
+misaki[en]

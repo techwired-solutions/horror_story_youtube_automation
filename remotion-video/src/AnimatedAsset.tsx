@@ -18,20 +18,13 @@ export const AnimatedAsset: React.FC<{
   );
 
   // 2. Pop (Spring)
-  const popSpring = spring({
-    frame,
-    fps,
-    config: {
-      stiffness: 100,
-      damping: 10,
-    },
-  });
+  const popSpring = spring({ frame, fps, config: { stiffness: 100, damping: 10 } });
   const scalePop = interpolate(popSpring, [0, 1], [0.8, 1]);
 
   // 3. Slide Up/Down
   const translateY = interpolate(
     frame,
-    [0, 30], // Smooth entry over 1 second
+    [0, 30],
     [animationType === 'slide_up' ? 100 : -100, 0],
     { extrapolateRight: 'clamp' }
   );
@@ -44,7 +37,15 @@ export const AnimatedAsset: React.FC<{
     { extrapolateRight: 'clamp' }
   );
 
-  const getStyles = () => {
+  // 5. Flash Cut — white flash 25% → 0% over first 3 frames (scene transition effect)
+  const flashOpacity = interpolate(
+    frame,
+    [0, 3],
+    [0.25, 0],
+    { extrapolateRight: 'clamp' }
+  );
+
+  const getStyles = (): React.CSSProperties => {
     switch (animationType) {
       case 'zoom':
         return { transform: `scale(${scaleZoom})` };
@@ -65,8 +66,7 @@ export const AnimatedAsset: React.FC<{
         className="w-full h-full"
         style={{
           ...getStyles(),
-          filter: 'contrast(1.2) brightness(0.7) sepia(0.1)', // Chilling aesthetic
-          transition: 'filter 0.5s ease-in-out',
+          filter: 'contrast(1.2) brightness(0.7) sepia(0.1)',
         }}
       >
         <img
@@ -75,10 +75,25 @@ export const AnimatedAsset: React.FC<{
           alt="horror scene"
         />
       </div>
-      
-      {/* Dark vignette overlay for depth */}
-      <div className="absolute inset-0 pointer-events-none" 
-           style={{ background: 'radial-gradient(circle, transparent 40%, rgba(0,0,0,0.8) 100%)' }} />
+
+      {/* Dark vignette overlay */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            'radial-gradient(circle, transparent 40%, rgba(0,0,0,0.85) 100%)',
+        }}
+      />
+
+      {/* Flash Cut overlay — white flash at scene start */}
+      {flashOpacity > 0 && (
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundColor: `rgba(255,255,255,${flashOpacity})`,
+          }}
+        />
+      )}
     </div>
   );
 };
