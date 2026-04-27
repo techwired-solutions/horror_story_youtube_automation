@@ -35,6 +35,7 @@ class ScriptGenerator:
             "parts": [
                 {{
                     "part_number": 1,
+                    "music_mood": "A 5-10 word description of the emotional pace for background music, e.g. 'slow creeping dread with building paranoia' or 'sudden terror and panic'. Must reflect the PACE and TONE of the narration — never upbeat.",
                     "scenes": [
                         {{
                             "text": "Narration text...",

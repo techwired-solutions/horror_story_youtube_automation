@@ -78,7 +78,7 @@ export const Captions: React.FC<{
     <div
       style={{
         position: 'absolute',
-        bottom: 260,
+        bottom: 350,
         left: 0,
         right: 0,
         display: 'flex',

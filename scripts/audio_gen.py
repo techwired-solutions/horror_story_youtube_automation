@@ -120,7 +120,7 @@ class AudioGenerator:
             for sentence in sentences:
                 sent_chunks = []
                 try:
-                    generator = pipeline(sentence, voice='af_heart', speed=0.9)
+                    generator = pipeline(sentence, voice='am_fenrir', speed=0.85)
                     for _gs, _ps, audio_chunk in generator:
                         sent_chunks.append(audio_chunk)
                 except Exception as e:
@@ -180,9 +180,9 @@ class AudioGenerator:
             async def _run():
                 communicate = edge_tts.Communicate(
                     text,
-                    voice="en-US-ChristopherNeural",
-                    rate="-10%",
-                    pitch="-5Hz",
+                    voice="en-US-DavisNeural",   # Deepest, most dramatic male voice
+                    rate="-15%",                 # Slower delivery for horror
+                    pitch="-8Hz",                # Lower pitch = more menacing
                 )
                 word_boundaries = []
                 os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
@@ -303,19 +303,24 @@ class AudioGenerator:
                        output_path: str = "assets/music.wav",
                        duration_seconds: int = 30):
         """
-        Generate contextual background music using HuggingFace MusicGen (free inference API).
-        Falls back to Freesound ambient search.
+        Generate slow, atmospheric background music via HuggingFace MusicGen.
+        The music MUST be slow, dim, and never upbeat — it plays quietly under narration.
+        Falls back to Freesound ambient drone search.
         """
         try:
             from huggingface_hub import InferenceClient
 
             client = InferenceClient(token=self.hf_token)
+
+            # Very specific slow-horror prompt — avoids fast/upbeat generation
             music_prompt = (
-                f"dark cinematic horror ambient music, {mood_prompt}, "
-                "ominous tension building, eerie atmosphere, no vocals, "
-                "suspenseful soundtrack"
+                f"slow dark horror ambient drone, {mood_prompt}, "
+                "40 BPM, deep sustained bass tones, eerie silence with texture, "
+                "minimal, no percussion, no melody, no rhythm, no beat, "
+                "cinematic tension, long slow notes, dark atmospheric sound design, "
+                "whisper-quiet background, spine-chilling, sub-bass rumble"
             )
-            logger.info(f"MusicGen: {music_prompt[:70]}...")
+            logger.info(f"MusicGen: {music_prompt[:90]}...")
 
             audio_bytes = client.text_to_audio(
                 music_prompt,
@@ -331,11 +336,60 @@ class AudioGenerator:
 
         except Exception as e:
             logger.warning(f"MusicGen failed ({e}) — falling back to Freesound ambient")
-            return self.generate_sfx(
-                f"horror ambient music atmosphere {mood_prompt}",
-                output_path,
-                duration_seconds=duration_seconds,
-            )
+            return self._music_freesound_fallback(mood_prompt, output_path)
+
+    def _music_freesound_fallback(self, mood_prompt: str, output_path: str) -> str:
+        """
+        Multi-tier Freesound fallback for background music.
+        Tries increasingly generic slow-horror ambient queries until one succeeds.
+        """
+        queries = [
+            f"slow horror ambient {mood_prompt[:20]}",
+            "dark ambient drone horror",
+            "horror atmosphere ambient",
+            "dark drone slow ambient",
+            "horror ambient",
+        ]
+        for query in queries:
+            result = self._try_freesound_download(query, output_path)
+            if result:
+                return result
+
+        logger.warning("All Freesound music fallbacks failed — using silence")
+        self._create_silence(output_path, duration=30.0)
+        return output_path
+
+    def _try_freesound_download(self, query: str, output_path: str):
+        """Attempt a single Freesound query and download the top result."""
+        try:
+            url = "https://freesound.org/apiv2/search/text/"
+            params = {
+                "query": query,
+                "token": self.freesound_key,
+                "fields": "id,name,previews,duration",
+                "sort": "rating_desc",
+                "page_size": 3,
+            }
+            resp = requests.get(url, params=params, timeout=15)
+            if resp.status_code == 200:
+                results = resp.json().get('results', [])
+                if results:
+                    preview_url = results[0]['previews'].get(
+                        'preview-hq-mp3', results[0]['previews'].get('preview-lq-mp3')
+                    )
+                    if preview_url:
+                        os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
+                        pr = requests.get(preview_url, timeout=30)
+                        if pr.status_code == 200:
+                            with open(output_path, 'wb') as f:
+                                f.write(pr.content)
+                            logger.success(
+                                f"Music from Freesound '{results[0]['name']}' → {output_path}"
+                            )
+                            return output_path
+        except Exception as e:
+            logger.debug(f"Freesound query '{query}' failed: {e}")
+        return None
 
     # ─────────────────────────────────────────────
     # PRIVATE: helpers

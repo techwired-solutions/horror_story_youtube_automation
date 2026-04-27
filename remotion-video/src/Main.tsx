@@ -50,7 +50,7 @@ export const Main: React.FC = () => {
     <div className="flex-1 bg-black">
       {/* 1. Background Music/Atmosphere */}
       {props.atmosphere_url && (
-        <Audio src={staticFile(props.atmosphere_url)} volume={0.1} />
+        <Audio src={staticFile(props.atmosphere_url)} volume={0.05} />
       )}
 
       {/* 2. Narration Audio */}

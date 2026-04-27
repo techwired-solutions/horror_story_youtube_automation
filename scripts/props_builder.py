@@ -44,14 +44,17 @@ class PropsBuilder:
         total_duration_seconds = audio_result["duration"]
 
         # ── 2. Generate Background Music ─────────────────────────────────────
-        # Build a mood prompt from the title/topic for contextual music
-        mood_keywords = title.replace(" - Part", "").strip()
+        # Use music_mood from script if available, fall back to title keywords
+        music_mood = part_data.get(
+            "music_mood",
+            f"slow creeping dread, {title.replace(' - Part', '').strip()}"
+        )
         atmosphere_filename = f"assets/audio/music_part_{part_number}.wav"
         atmosphere_output_path = os.path.join(
             "remotion-video/public", atmosphere_filename
         )
         self.audio_gen.generate_music(
-            mood_prompt=mood_keywords,
+            mood_prompt=music_mood,
             output_path=atmosphere_output_path,
             duration_seconds=int(total_duration_seconds) + 10,
         )
