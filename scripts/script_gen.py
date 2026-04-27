@@ -21,11 +21,12 @@ class ScriptGenerator:
         If the story fits in one part, only return one part.
         
         CRITICAL INSTRUCTIONS FOR SCARINESS & STRUCTURE:
-        1. Narrative Style: Use ElevenLabs emotional tags like [whispers], [sighs], [giggles], [trembling], [excited], and [slow pacing] directly in the narration text.
+        1. Narrative Style: Write in an expressive, emotionally charged style — use dramatic pauses (...), vivid sensory language, and vary sentence rhythm to build tension. Do NOT include any bracketed tags like [whispers] or [slow pacing] in the narration text — they must not appear in the script at all.
         2. Realism & Folklore: Focus on "True" stories, urban legends, or documented cases.
         3. Multi-Part Hooks: If there is a next part, the narration MUST end with a cliffhanger followed by "Subscribe for Part [Next Part Number]".
         4. Part Intro: If it's Part 2 or higher, start with "Part [Number] of [Title]".
         5. Visuals: Provide a 'character_description' for consistency and 'image_prompt' for each scene.
+        6. SFX Prompts: The 'sfx_prompt' for each scene must be a SHORT 2-3 word Freesound.org search query (e.g. "creaking door", "wind howling", "heartbeat suspense", "ghost whisper", "thunder storm"). Do NOT write long sentences.
         
         Format the output as a JSON object:
         {{

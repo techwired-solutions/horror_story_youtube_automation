@@ -34,7 +34,13 @@ class PropsBuilder:
             return None
 
         # word-level timestamps come directly from Kokoro / Edge-TTS
-        words = audio_result["words"]
+        # Also strip any residual [tags] from word text (safety net)
+        import re
+        words = [
+            w for w in audio_result["words"]
+            if re.sub(r'[^\w]', '', w.get('text', '')).strip()
+            and not re.match(r'^\[.*\]$', w.get('text', '').strip())
+        ]
         total_duration_seconds = audio_result["duration"]
 
         # ── 2. Generate Background Music ─────────────────────────────────────

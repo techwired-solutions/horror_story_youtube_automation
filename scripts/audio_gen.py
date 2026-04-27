@@ -13,6 +13,36 @@ HUGGINGFACE_TOKEN = os.getenv("HUGGINGFACE_TOKEN")
 
 SAMPLE_RATE = 24000  # Kokoro native sample rate
 
+# Horror-specific keyword mapping for Freesound search
+# Maps common script SFX descriptions to reliable Freesound search terms
+HORROR_SFX_MAP = {
+    "creak":       "wood creak",
+    "door":        "creaking door",
+    "whisper":     "ghost whisper",
+    "wind":        "wind howling",
+    "thunder":     "thunder storm",
+    "heartbeat":   "heartbeat",
+    "breath":      "heavy breathing",
+    "scream":      "horror scream",
+    "footstep":    "footsteps dark",
+    "footsteps":   "footsteps dark",
+    "laugh":       "sinister laugh",
+    "giggle":      "creepy giggle",
+    "silence":     "ambient horror",
+    "forest":      "dark forest night",
+    "rain":        "rain storm",
+    "church":      "church bell",
+    "bell":        "bell toll",
+    "scratch":     "scratch wall",
+    "knock":       "knocking door",
+    "static":      "tv static noise",
+    "growl":       "monster growl",
+    "howl":        "wolf howl",
+    "music":       "horror ambient music",
+    "ambient":     "horror ambient",
+    "atmosphere":  "horror atmosphere",
+}
+
 
 class AudioGenerator:
     def __init__(self):
@@ -28,21 +58,33 @@ class AudioGenerator:
     def generate_speech(self, text: str, output_path: str = "assets/speech.mp3"):
         """
         Generate narration with word-level timestamps.
-        Tries Kokoro TTS first, falls back to Edge-TTS.
+        Strips emotion tags, tries Kokoro TTS first, falls back to Edge-TTS.
         """
-        logger.info(f"Generating speech for: {text[:60]}...")
+        clean_text = self._strip_emotion_tags(text)
+        logger.info(f"Generating speech for: {clean_text[:60]}...")
 
-        result = self._generate_with_kokoro(text, output_path)
+        result = self._generate_with_kokoro(clean_text, output_path)
         if result:
             return result
 
         logger.warning("Kokoro failed — falling back to Edge-TTS")
-        result = self._generate_with_edge_tts(text, output_path)
+        result = self._generate_with_edge_tts(clean_text, output_path)
         if result:
             return result
 
         logger.error("All TTS methods failed")
         return None
+
+    @staticmethod
+    def _strip_emotion_tags(text: str) -> str:
+        """
+        Remove ElevenLabs-style bracketed emotion/delivery tags from text.
+        e.g. [whispers], [slow pacing], [trembling voice] -> stripped out.
+        Also collapses any double-spaces left behind.
+        """
+        cleaned = re.sub(r'\[.*?\]', '', text)
+        cleaned = re.sub(r'  +', ' ', cleaned)
+        return cleaned.strip()
 
     # ─────────────────────────────────────────────
     # PRIVATE: Kokoro TTS (primary)
@@ -184,30 +226,25 @@ class AudioGenerator:
     def generate_sfx(self, prompt: str, output_path: str = "assets/sfx.mp3",
                      duration_seconds: float = None):
         """
-        Search Freesound.org for a contextually relevant SFX and download its preview.
+        Search Freesound.org for contextually relevant SFX and download its preview.
+        Uses a horror-specific keyword map for reliable results.
         Falls back to silence if nothing found.
         """
         try:
-            stop_words = {
-                'a','an','the','with','in','on','at','for','of','and','or',
-                'is','it','its','this','that','to','into','dark','deep',
-            }
-            raw_words = re.findall(r'\w+', prompt.lower())
-            keywords = [w for w in raw_words if w not in stop_words and len(w) > 2]
-            query = ' '.join(keywords[:6])
+            query = self._build_freesound_query(prompt)
+            logger.info(f"Freesound SFX search: '{query}' (from prompt: '{prompt}')") 
 
             url = "https://freesound.org/apiv2/search/text/"
             params = {
                 "query": query,
                 "token": self.freesound_key,
                 "fields": "id,name,previews,duration",
-                "filter": "duration:[1 TO 30]",
                 "sort": "rating_desc",
                 "page_size": 5,
             }
 
-            logger.info(f"Freesound SFX search: '{query}'")
             resp = requests.get(url, params=params, timeout=20)
+            logger.debug(f"Freesound response: {resp.status_code}")
 
             if resp.status_code == 200:
                 data = resp.json()
@@ -234,6 +271,29 @@ class AudioGenerator:
             logger.error(f"generate_sfx failed: {e}")
             self._create_silence(output_path, duration=duration_seconds or 3.0)
             return output_path
+
+    @staticmethod
+    def _build_freesound_query(prompt: str) -> str:
+        """
+        Convert a potentially long sfx_prompt into a short, reliable Freesound query.
+        Checks the horror keyword map first, then falls back to keyword extraction.
+        """
+        prompt_lower = prompt.lower()
+
+        # Check horror keyword map — return the mapped term if any key matches
+        for key, mapped_query in HORROR_SFX_MAP.items():
+            if key in prompt_lower:
+                return mapped_query
+
+        # Fallback: strip stop words and take top 3 keywords
+        stop_words = {
+            'a','an','the','with','in','on','at','for','of','and','or',
+            'is','it','its','this','that','to','into','very','old','dark',
+            'deep','soft','low','high','loud','distant','sudden','slowly',
+        }
+        raw_words = re.findall(r'\w+', prompt_lower)
+        keywords = [w for w in raw_words if w not in stop_words and len(w) > 2]
+        return ' '.join(keywords[:3]) if keywords else "horror ambient"
 
     # ─────────────────────────────────────────────
     # PUBLIC: generate_music — HuggingFace MusicGen
