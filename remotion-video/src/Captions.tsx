@@ -13,15 +13,50 @@ interface WordChunk {
   end: number;
 }
 
+/**
+ * Group words into display chunks that NEVER cross sentence boundaries.
+ *
+ * Strategy:
+ *  1. First, split the flat word list into "sentences" by detecting
+ *     audio gaps > GAP_THRESHOLD seconds between consecutive words.
+ *     A gap this large always means the narrator paused between sentences.
+ *  2. Then sub-divide each sentence into ≤ maxWords chunks so the
+ *     caption block doesn't overflow the screen.
+ *
+ * This guarantees that words from sentence N+1 will NEVER appear
+ * in the same chunk as the tail of sentence N.
+ */
+const SENTENCE_GAP_THRESHOLD = 0.25; // seconds
+
 function groupIntoChunks(subtitles: Subtitle[], maxWords = 4): WordChunk[] {
+  if (!subtitles.length) return [];
+
+  // ── Step 1: split into sentences by gap detection ─────────────────────────
+  const sentences: Subtitle[][] = [];
+  let currentSentence: Subtitle[] = [subtitles[0]];
+
+  for (let i = 1; i < subtitles.length; i++) {
+    const gap = subtitles[i].start - subtitles[i - 1].end;
+    if (gap > SENTENCE_GAP_THRESHOLD) {
+      // Natural pause → flush current sentence, start new one
+      sentences.push(currentSentence);
+      currentSentence = [];
+    }
+    currentSentence.push(subtitles[i]);
+  }
+  if (currentSentence.length) sentences.push(currentSentence);
+
+  // ── Step 2: sub-chunk each sentence into ≤ maxWords display blocks ─────────
   const chunks: WordChunk[] = [];
-  for (let i = 0; i < subtitles.length; i += maxWords) {
-    const words = subtitles.slice(i, i + maxWords);
-    chunks.push({
-      words,
-      start: words[0].start,
-      end: words[words.length - 1].end,
-    });
+  for (const sentence of sentences) {
+    for (let i = 0; i < sentence.length; i += maxWords) {
+      const words = sentence.slice(i, i + maxWords);
+      chunks.push({
+        words,
+        start: words[0].start,
+        end: words[words.length - 1].end,
+      });
+    }
   }
   return chunks;
 }

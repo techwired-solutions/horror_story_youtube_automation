@@ -8,13 +8,30 @@ from loguru import logger
 
 load_dotenv()
 
-FREESOUND_API_KEY = os.getenv("FREESOUND_API_KEY")
-HUGGINGFACE_TOKEN = os.getenv("HUGGINGFACE_TOKEN")
+FREESOUND_API_KEY  = os.getenv("FREESOUND_API_KEY")
+HUGGINGFACE_TOKEN  = os.getenv("HUGGINGFACE_TOKEN")
+HUME_API_KEY       = os.getenv("HUME_API_KEY")
 
 SAMPLE_RATE = 24000  # Kokoro native sample rate
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Hume Octave voice ID for horror narration.
+# Visit https://platform.hume.ai/tts/voices to browse and copy a voice ID.
+# This default is a deep, cinematic male storyteller.
+# ─────────────────────────────────────────────────────────────────────────────
+HUME_HORROR_VOICE_ID = os.getenv("HUME_VOICE_ID", "")   # leave blank → Hume auto-selects
+
+# Acting instructions sent to Hume Octave alongside the narration text.
+# These replace ElevenLabs-style [audio tags] with natural language direction.
+HUME_ACTING_INSTRUCTIONS = (
+    "Narrate this horror story in the style of a seasoned paranormal storyteller. "
+    "Your voice should be deep, slow, and gravely serious — as if you witnessed these "
+    "events yourself. Speak with controlled dread: lower your pitch on tense moments, "
+    "pause before reveals, and let fear seep into every word. Never rush. "
+    "The silence between sentences should feel heavy."
+)
+
 # Horror-specific keyword mapping for Freesound search
-# Maps common script SFX descriptions to reliable Freesound search terms
 HORROR_SFX_MAP = {
     "creak":       "wood creak",
     "door":        "creaking door",
@@ -47,26 +64,42 @@ HORROR_SFX_MAP = {
 class AudioGenerator:
     def __init__(self):
         self.freesound_key = FREESOUND_API_KEY
-        self.hf_token = HUGGINGFACE_TOKEN
+        self.hf_token      = HUGGINGFACE_TOKEN
+        self.hume_key      = HUME_API_KEY
         self._kokoro_pipeline = None
 
     # ─────────────────────────────────────────────
     # PUBLIC: generate_speech
     # Returns: {"audio_path": str, "words": [{text, start, end}], "duration": float}
+    # Chain: Hume Octave → Kokoro → Edge-TTS
     # ─────────────────────────────────────────────
 
     def generate_speech(self, text: str, output_path: str = "assets/speech.mp3"):
         """
         Generate narration with word-level timestamps.
-        Strips emotion tags, tries Kokoro TTS first, falls back to Edge-TTS.
+        Strips bracketed emotion tags for display, but uses them to enrich
+        the acting instructions sent to Hume Octave for expressive delivery.
         """
+        # Extract emotion hints before stripping tags (used for Hume instructions)
+        emotion_hints = self._extract_emotion_hints(text)
         clean_text = self._strip_emotion_tags(text)
-        logger.info(f"Generating speech for: {clean_text[:60]}...")
+        logger.info(f"Generating speech for: {clean_text[:80]}...")
 
+        # ── Primary: Hume AI Octave ──────────────────────────────────────────
+        if self.hume_key and self.hume_key != "your_hume_api_key_here":
+            result = self._generate_with_hume(clean_text, output_path, emotion_hints)
+            if result:
+                return result
+            logger.warning("Hume Octave failed — falling back to Kokoro")
+        else:
+            logger.warning("HUME_API_KEY not set — skipping Hume, using Kokoro")
+
+        # ── Secondary: Kokoro ────────────────────────────────────────────────
         result = self._generate_with_kokoro(clean_text, output_path)
         if result:
             return result
 
+        # ── Last Resort: Edge-TTS ────────────────────────────────────────────
         logger.warning("Kokoro failed — falling back to Edge-TTS")
         result = self._generate_with_edge_tts(clean_text, output_path)
         if result:
@@ -76,10 +109,19 @@ class AudioGenerator:
         return None
 
     @staticmethod
+    def _extract_emotion_hints(text: str) -> str:
+        """
+        Pull out the bracketed emotion/delivery cues (e.g. [whispers], [trembling voice])
+        and return them as a comma-separated hint string for use in Hume acting instructions.
+        """
+        tags = re.findall(r'\[([^\]]+)\]', text)
+        return ", ".join(tags) if tags else ""
+
+    @staticmethod
     def _strip_emotion_tags(text: str) -> str:
         """
         Remove ElevenLabs-style bracketed emotion/delivery tags from text.
-        e.g. [whispers], [slow pacing], [trembling voice] -> stripped out.
+        e.g. [whispers], [slow pacing], [trembling voice] → stripped out.
         Also collapses any double-spaces left behind.
         """
         cleaned = re.sub(r'\[.*?\]', '', text)
@@ -87,7 +129,118 @@ class AudioGenerator:
         return cleaned.strip()
 
     # ─────────────────────────────────────────────
-    # PRIVATE: Kokoro TTS (primary)
+    # PRIVATE: Hume AI Octave TTS (primary)
+    # ─────────────────────────────────────────────
+
+    def _generate_with_hume(self, text: str, output_path: str,
+                             emotion_hints: str = "") -> dict | None:
+        """
+        Generate expressive horror narration via Hume AI Octave v2.
+
+        Octave is a speech-language model that understands context and emotion.
+        Unlike standard TTS engines, it can follow natural-language acting
+        instructions — making it ideal for cinematic horror narration.
+
+        Returns: {"audio_path": str, "words": [{text, start, end}], "duration": float}
+        """
+        try:
+            from hume import HumeClient
+            from hume.tts import PostedUtterance, PostedUtteranceVoiceWithId
+
+            client = HumeClient(api_key=self.hume_key)
+
+            # Build enriched acting instructions — merge base horror direction
+            # with any emotion cues extracted from the script tags
+            acting = HUME_ACTING_INSTRUCTIONS
+            if emotion_hints:
+                acting += f" Additional emotional cues for this passage: {emotion_hints}."
+
+            # Build utterance
+            voice_kwargs = {}
+            if HUME_HORROR_VOICE_ID:
+                voice_kwargs["voice"] = PostedUtteranceVoiceWithId(id=HUME_HORROR_VOICE_ID)
+
+            utterance = PostedUtterance(
+                text=text,
+                description=acting,
+                **voice_kwargs,
+            )
+
+            logger.info("Calling Hume Octave TTS (v2, word timestamps)...")
+
+            # Use the synchronous TTS endpoint with word-level timestamps
+            response = client.tts.synthesize_json(
+                utterances=[utterance],
+                format="mp3",
+                include_timestamp_types=["word"],
+            )
+
+            if not response or not response.generations:
+                logger.warning("Hume returned empty generations")
+                return None
+
+            generation = response.generations[0]
+
+            # ── Save audio ─────────────────────────────────────────────────
+            os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
+
+            # audio is base64-encoded in the response
+            import base64
+            audio_bytes = base64.b64decode(generation.audio)
+            with open(output_path, 'wb') as f:
+                f.write(audio_bytes)
+
+            # ── Extract word-level timestamps ──────────────────────────────
+            words = []
+            if hasattr(generation, 'timestamps') and generation.timestamps:
+                for ts in generation.timestamps:
+                    if hasattr(ts, 'type') and ts.type == 'word':
+                        words.append({
+                            "text":  ts.value,
+                            "start": round(ts.start_time, 3),
+                            "end":   round(ts.end_time,   3),
+                        })
+
+            if not words:
+                logger.warning("Hume returned no word timestamps — estimating from duration")
+                words = self._estimate_word_timestamps(text, generation.duration_secs or 30.0)
+
+            duration = words[-1]['end'] if words else (generation.duration_secs or 30.0)
+            logger.success(
+                f"Hume Octave: {len(words)} words, {duration:.1f}s → {output_path}"
+            )
+            return {"audio_path": output_path, "words": words, "duration": duration}
+
+        except ImportError:
+            logger.warning("hume SDK not installed — run: pip install hume>=0.8.0")
+            return None
+        except Exception as e:
+            logger.error(f"Hume Octave generation failed: {e}")
+            return None
+
+    @staticmethod
+    def _estimate_word_timestamps(text: str, total_duration: float) -> list[dict]:
+        """
+        Fallback: uniformly distribute word timestamps across the full audio duration.
+        Used only when Hume returns audio but no timestamp data.
+        """
+        words = [w.strip() for w in text.split() if w.strip()]
+        if not words:
+            return []
+        time_per_word = total_duration / len(words)
+        result = []
+        for i, word in enumerate(words):
+            clean = re.sub(r"[^\w'']", '', word)
+            if clean:
+                result.append({
+                    "text":  clean,
+                    "start": round(i * time_per_word, 3),
+                    "end":   round((i + 1) * time_per_word, 3),
+                })
+        return result
+
+    # ─────────────────────────────────────────────
+    # PRIVATE: Kokoro TTS (secondary fallback)
     # ─────────────────────────────────────────────
 
     def _get_kokoro_pipeline(self):
@@ -141,13 +294,19 @@ class AudioGenerator:
                         clean = re.sub(r"[^\w'']", '', word)
                         if clean:
                             all_words.append({
-                                "text": clean,
+                                "text":  clean,
                                 "start": round(current_time + i * time_per_word, 3),
-                                "end": round(current_time + (i + 1) * time_per_word, 3),
+                                "end":   round(current_time + (i + 1) * time_per_word, 3),
                             })
 
                 all_audio_chunks.append(sent_audio)
                 current_time += sent_duration
+
+                # Add a small natural gap between sentences (0.35s)
+                # so the caption chunker can detect the sentence boundary
+                gap_samples = int(0.35 * SAMPLE_RATE)
+                all_audio_chunks.append(np.zeros(gap_samples))
+                current_time += 0.35
 
             if not all_audio_chunks or not all_words:
                 return None
@@ -170,7 +329,7 @@ class AudioGenerator:
             return None
 
     # ─────────────────────────────────────────────
-    # PRIVATE: Edge-TTS fallback
+    # PRIVATE: Edge-TTS fallback (last resort)
     # ─────────────────────────────────────────────
 
     def _generate_with_edge_tts(self, text: str, output_path: str):
@@ -199,9 +358,9 @@ class AudioGenerator:
                     start = wb['offset'] / 10_000_000       # 100-ns → seconds
                     dur   = wb['duration'] / 10_000_000
                     words.append({
-                        "text": wb['text'],
+                        "text":  wb['text'],
                         "start": round(start, 3),
-                        "end": round(start + dur, 3),
+                        "end":   round(start + dur, 3),
                     })
                 return words
 
@@ -232,7 +391,7 @@ class AudioGenerator:
         """
         try:
             query = self._build_freesound_query(prompt)
-            logger.info(f"Freesound SFX search: '{query}' (from prompt: '{prompt}')") 
+            logger.info(f"Freesound SFX search: '{query}' (from prompt: '{prompt}')")
 
             url = "https://freesound.org/apiv2/search/text/"
             params = {
