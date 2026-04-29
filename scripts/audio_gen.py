@@ -25,10 +25,14 @@ HUME_HORROR_VOICE_ID = os.getenv("HUME_VOICE_ID", "")   # leave blank → Hume a
 # These replace ElevenLabs-style [audio tags] with natural language direction.
 HUME_ACTING_INSTRUCTIONS = (
     "Narrate this horror story in the style of a seasoned paranormal storyteller. "
-    "Your voice should be deep, slow, and gravely serious — as if you witnessed these "
-    "events yourself. Speak with controlled dread: lower your pitch on tense moments, "
-    "pause before reveals, and let fear seep into every word. Never rush. "
-    "The silence between sentences should feel heavy."
+    "Your voice must be incredibly deep, resonant, and husky with a dark, gritty texture. "
+    "Breathe from the diaphragm to achieve stomach pressure and depth without strain, ensuring perfect clarity with no mouth noises. "
+    "Maintain a slow, calm, and measured delivery with highly controlled pacing—never rush. "
+    "Use low-pitched whispers for intimacy and menace, and breathy delivery for ghostly vulnerability. "
+    "Occasionally add a gravelly, growling quality from the back of the throat to suggest aggression and threat. "
+    "Rely heavily on silence and heavy pauses to build suspense, rather than just loudness. "
+    "Only use a higher pitch to indicate panic or a character screaming; otherwise, keep the pitch menacingly low. "
+    "Your narrator voice must remain completely distinct from any characters in the story."
 )
 
 # Horror-specific keyword mapping for Freesound search
