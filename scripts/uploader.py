@@ -29,8 +29,18 @@ class YouTubeUploader:
         if not credentials or not credentials.valid:
             if credentials and credentials.expired and credentials.refresh_token:
                 from google.auth.transport.requests import Request
-                credentials.refresh(Request())
-            else:
+                import google.auth.exceptions
+                try:
+                    credentials.refresh(Request())
+                except google.auth.exceptions.RefreshError as e:
+                    logger.warning(f"Token refresh failed: {e}. Deleting token file to re-authenticate.")
+                    os.remove(self.token_file)
+                    credentials = None
+
+            if not credentials or not credentials.valid:
+                if os.getenv("GITHUB_ACTIONS"):
+                    raise RuntimeError("YouTube token is invalid or expired. Please run this script locally to generate a new token.pickle and update the GitHub secret/repository.")
+                
                 flow = google_auth_oauthlib.flow.InstalledAppFlow.from_client_secrets_file(
                     self.client_secrets_file, SCOPES)
                 credentials = flow.run_local_server(port=0)
@@ -107,7 +117,6 @@ class YouTubeUploader:
         return response['id']
 
 if __name__ == "__main__":
-    # Test uploader
-    # uploader = YouTubeUploader()
-    # uploader.upload_video("path/to/video.mp4", "Test Video", "Test Description")
-    pass
+    logger.info("Initializing YouTube Uploader to check/refresh credentials...")
+    uploader = YouTubeUploader()
+    logger.success("Authentication successful! token.pickle is ready.")

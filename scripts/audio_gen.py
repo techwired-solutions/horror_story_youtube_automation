@@ -175,7 +175,7 @@ class AudioGenerator:
             # Use the synchronous TTS endpoint with word-level timestamps
             response = client.tts.synthesize_json(
                 utterances=[utterance],
-                format="mp3",
+                format={"type": "mp3"},
                 include_timestamp_types=["word"],
             )
 
