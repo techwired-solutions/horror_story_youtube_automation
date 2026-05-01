@@ -13,3 +13,5 @@ huggingface_hub
 kokoro>=0.9.4
 misaki[en]
 hume>=0.8.0
+pydub
+pedalboard

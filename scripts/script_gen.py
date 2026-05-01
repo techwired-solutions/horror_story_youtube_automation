@@ -15,18 +15,26 @@ class ScriptGenerator:
         prompt = f"""
         Write a high-detail, cinematic horror story script for a YouTube Short about: {topic}.
         
-        Target Audience: American viewers (Focus on real scary incidents, true paranormal cases, ancient cultural folklore, or terrifying "did you know" facts).
+        Target Audience: American viewers (Focus on real scary incidents, true paranormal cases, ancient cultural folklore, or terrifying facts).
         
-        The script should be broken into "parts" if the story is long. Each part MUST be under 1 minute of narration (approx. 130-150 words).
-        If the story fits in one part, only return one part.
+        The script should be broken into "parts" if the story is long. Each part MUST be under 1 minute of narration.
         
-        CRITICAL INSTRUCTIONS FOR SCARINESS & STRUCTURE:
-        1. Narrative Style: Write in an expressive, emotionally charged style — use dramatic pauses (...), vivid sensory language, and vary sentence rhythm to build tension. Do NOT include any bracketed tags like [whispers] or [slow pacing] in the narration text — they must not appear in the script at all.
-        2. Realism & Folklore: Focus on "True" stories, urban legends, or documented cases.
-        3. Multi-Part Hooks: If there is a next part, the narration MUST end with a cliffhanger followed by "Subscribe for Part [Next Part Number]".
-        4. Part Intro: If it's Part 2 or higher, start with "Part [Number] of [Title]".
-        5. Visuals: Provide a 'character_description' for consistency and 'image_prompt' for each scene.
-        6. SFX Prompts: The 'sfx_prompt' for each scene must be a SHORT 2-3 word Freesound.org search query (e.g. "creaking door", "wind howling", "heartbeat suspense", "ghost whisper", "thunder storm"). Do NOT write long sentences.
+        CRITICAL RULES FOR PERFORMANCE NARRATION (BEAT-BASED):
+        1. SINGLE NARRATOR ONLY: No character voice switching. One late-night paranormal storyteller. Style: Mr Nightmare / Lighthouse Horror.
+        2. BEAT-BASED NARRATION: Do NOT write prose paragraphs. Write short, punchy performance beats.
+           - Bad: "He looked behind him and saw something standing there in the trees."
+           - Good: "He looked behind him...", "And then he saw it—", "Something standing...", "In the trees."
+           - Max 3-8 words per beat when possible. One dramatic idea per beat. One breath per beat.
+        3. NO ADJECTIVE-HEAVY PROSE: Use concrete imagery.
+        4. EMOTIONAL ARC: calm unease → dread → reveal → panic → haunted ending.
+        5. PUNCTUATION SHAPING:
+           - comma = short pause
+           - period = medium pause
+           - ellipsis = suspense
+           - dash = abrupt realization
+        6. NO BRACKET TAGS: Do not write [whispers] in the text. Use the 'delivery' field instead.
+        7. DELIVERY MODES: Must be exactly one of: calm, unease, dread, whisper, reveal, panic, terror, ending.
+        8. PACING: hook within 2 seconds, open loop curiosity, escalating dread, cliffhanger if multipart.
         
         Format the output as a JSON object:
         {{
@@ -35,14 +43,17 @@ class ScriptGenerator:
             "parts": [
                 {{
                     "part_number": 1,
-                    "music_mood": "A 5-10 word description of the emotional pace for background music, e.g. 'slow creeping dread with building paranoia' or 'sudden terror and panic'. Must reflect the PACE and TONE of the narration — never upbeat.",
-                    "scenes": [
+                    "music_mood": "e.g. slow creeping dread with building paranoia",
+                    "beats": [
                         {{
-                            "text": "Narration text...",
-                            "image_prompt": "Prompt...",
-                            "sfx_prompt": "sound effect",
+                            "text": "Something was standing there—",
+                            "delivery": "reveal",
+                            "pause_after": 0.6,
+                            "emphasis_word": "Something",
+                            "image_prompt": "Cinematic shot of dark trees...",
+                            "sfx_prompt": "creaking wood",
                             "animation_type": "zoom",
-                            "duration_estimate": 8
+                            "duration_estimate": 2
                         }}
                     ]
                 }}

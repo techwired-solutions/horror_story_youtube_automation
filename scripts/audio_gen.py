@@ -5,6 +5,8 @@ import numpy as np
 import requests
 from dotenv import load_dotenv
 from loguru import logger
+import soundfile as sf
+from pydub import AudioSegment
 
 load_dotenv()
 
@@ -12,30 +14,19 @@ FREESOUND_API_KEY  = os.getenv("FREESOUND_API_KEY")
 HUGGINGFACE_TOKEN  = os.getenv("HUGGINGFACE_TOKEN")
 HUME_API_KEY       = os.getenv("HUME_API_KEY")
 
-SAMPLE_RATE = 24000  # Kokoro native sample rate
+SAMPLE_RATE = 24000
+HUME_HORROR_VOICE_ID = os.getenv("HUME_VOICE_ID", "") 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Hume Octave voice ID for horror narration.
-# Visit https://platform.hume.ai/tts/voices to browse and copy a voice ID.
-# This default is a deep, cinematic male storyteller.
-# ─────────────────────────────────────────────────────────────────────────────
-HUME_HORROR_VOICE_ID = os.getenv("HUME_VOICE_ID", "")   # leave blank → Hume auto-selects
-
-# Acting instructions sent to Hume Octave alongside the narration text.
-# These replace ElevenLabs-style [audio tags] with natural language direction.
-HUME_ACTING_INSTRUCTIONS = (
-    "Narrate this horror story in the style of a seasoned paranormal storyteller. "
-    "Your voice must be incredibly deep, resonant, and husky with a dark, gritty texture. "
-    "Breathe from the diaphragm to achieve stomach pressure and depth without strain, ensuring perfect clarity with no mouth noises. "
-    "Maintain a slow, calm, and measured delivery with highly controlled pacing—never rush. "
-    "Use low-pitched whispers for intimacy and menace, and breathy delivery for ghostly vulnerability. "
-    "Occasionally add a gravelly, growling quality from the back of the throat to suggest aggression and threat. "
-    "Rely heavily on silence and heavy pauses to build suspense, rather than just loudness. "
-    "Only use a higher pitch to indicate panic or a character screaming; otherwise, keep the pitch menacingly low. "
-    "Your narrator voice must remain completely distinct from any characters in the story."
+HUME_GLOBAL_ACTING = (
+    "Narrate like a late-night paranormal storyteller speaking directly into one listener's ear. "
+    "Voice should feel intimate, cinematic, and unsettling. "
+    "Never theatrical. Never overact. Stay natural—but dark. "
+    "Build tension slowly. Let disturbing ideas linger. "
+    "Use subtle whispers occasionally. Lower your voice for frightening revelations. "
+    "Use breath naturally. Silence is meaningful. "
+    "Every sentence should feel like a secret the listener should not hear."
 )
 
-# Horror-specific keyword mapping for Freesound search
 HORROR_SFX_MAP = {
     "creak":       "wood creak",
     "door":        "creaking door",
@@ -46,133 +37,90 @@ HORROR_SFX_MAP = {
     "breath":      "heavy breathing",
     "scream":      "horror scream",
     "footstep":    "footsteps dark",
-    "footsteps":   "footsteps dark",
     "laugh":       "sinister laugh",
-    "giggle":      "creepy giggle",
     "silence":     "ambient horror",
     "forest":      "dark forest night",
-    "rain":        "rain storm",
-    "church":      "church bell",
-    "bell":        "bell toll",
-    "scratch":     "scratch wall",
-    "knock":       "knocking door",
-    "static":      "tv static noise",
     "growl":       "monster growl",
-    "howl":        "wolf howl",
     "music":       "horror ambient music",
     "ambient":     "horror ambient",
-    "atmosphere":  "horror atmosphere",
 }
-
 
 class AudioGenerator:
     def __init__(self):
         self.freesound_key = FREESOUND_API_KEY
         self.hf_token      = HUGGINGFACE_TOKEN
         self.hume_key      = HUME_API_KEY
-        self._kokoro_pipeline = None
 
-    # ─────────────────────────────────────────────
-    # PUBLIC: generate_speech
-    # Returns: {"audio_path": str, "words": [{text, start, end}], "duration": float}
-    # Chain: Hume Octave → Kokoro → Edge-TTS
-    # ─────────────────────────────────────────────
-
-    def generate_speech(self, text: str, output_path: str = "assets/speech.mp3"):
+    def generate_speech(self, beats: list, output_path: str = "assets/speech.mp3"):
         """
-        Generate narration with word-level timestamps.
-        Strips bracketed emotion tags for display, but uses them to enrich
-        the acting instructions sent to Hume Octave for expressive delivery.
-        """
-        # Extract emotion hints before stripping tags (used for Hume instructions)
-        emotion_hints = self._extract_emotion_hints(text)
-        clean_text = self._strip_emotion_tags(text)
-        logger.info(f"Generating speech for: {clean_text[:80]}...")
-
-        # ── Primary: Hume AI Octave ──────────────────────────────────────────
-        if self.hume_key and self.hume_key != "your_hume_api_key_here":
-            result = self._generate_with_hume(clean_text, output_path, emotion_hints)
-            if result:
-                return result
-            logger.warning("Hume Octave failed — falling back to Kokoro")
-        else:
-            logger.warning("HUME_API_KEY not set — skipping Hume, using Kokoro")
-
-        # ── Secondary: Kokoro ────────────────────────────────────────────────
-        result = self._generate_with_kokoro(clean_text, output_path)
-        if result:
-            return result
-
-        # ── Last Resort: Edge-TTS ────────────────────────────────────────────
-        logger.warning("Kokoro failed — falling back to Edge-TTS")
-        result = self._generate_with_edge_tts(clean_text, output_path)
-        if result:
-            return result
-
-        logger.error("All TTS methods failed")
-        return None
-
-    @staticmethod
-    def _extract_emotion_hints(text: str) -> str:
-        """
-        Pull out the bracketed emotion/delivery cues (e.g. [whispers], [trembling voice])
-        and return them as a comma-separated hint string for use in Hume acting instructions.
-        """
-        tags = re.findall(r'\[([^\]]+)\]', text)
-        return ", ".join(tags) if tags else ""
-
-    @staticmethod
-    def _strip_emotion_tags(text: str) -> str:
-        """
-        Remove ElevenLabs-style bracketed emotion/delivery tags from text.
-        e.g. [whispers], [slow pacing], [trembling voice] → stripped out.
-        Also collapses any double-spaces left behind.
-        """
-        cleaned = re.sub(r'\[.*?\]', '', text)
-        cleaned = re.sub(r'  +', ' ', cleaned)
-        return cleaned.strip()
-
-    # ─────────────────────────────────────────────
-    # PRIVATE: Hume AI Octave TTS (primary)
-    # ─────────────────────────────────────────────
-
-    def _generate_with_hume(self, text: str, output_path: str,
-                             emotion_hints: str = "") -> dict | None:
-        """
-        Generate expressive horror narration via Hume AI Octave v2.
-
-        Octave is a speech-language model that understands context and emotion.
-        Unlike standard TTS engines, it can follow natural-language acting
-        instructions — making it ideal for cinematic horror narration.
-
+        Takes an array of beats, compiles them into a single performance script,
+        generates the narration via Hume, overlays micro-breaths, and masters the audio.
         Returns: {"audio_path": str, "words": [{text, start, end}], "duration": float}
         """
+        performance_script = self._compile_performance_script(beats)
+        logger.info(f"Compiled Performance Script:\n{performance_script[:200]}...")
+
+        # 1. Generate Core Narration (Hume)
+        raw_output_path = output_path.replace(".mp3", "_raw.mp3")
+        result = self._generate_with_hume(performance_script, raw_output_path)
+        
+        if not result:
+            logger.error("Hume generation failed. Check API key and quota.")
+            return None
+
+        # 2. Add Micro-Breaths
+        with_breaths_path = output_path.replace(".mp3", "_with_breaths.wav")
+        self._overlay_micro_breaths(raw_output_path, beats, result["words"], with_breaths_path)
+
+        # 3. Master Audio
+        self._master_audio(with_breaths_path, output_path)
+        
+        result["audio_path"] = output_path
+        return result
+
+    def _compile_performance_script(self, beats: list) -> str:
+        """
+        Combines beats into one continuous narration string with punctuation shaping.
+        """
+        lines = []
+        for beat in beats:
+            text = beat.get("text", "").strip()
+            # Collapse multiple spaces
+            text = re.sub(r' +', ' ', text)
+            
+            pause = float(beat.get("pause_after", 0.0))
+            if pause >= 1.0 and not text.endswith(('.', '…', '!', '?')):
+                text += "..."
+                
+            lines.append(text)
+            
+            if pause >= 1.0:
+                lines.append("\n\n") # Paragraph break = long pause
+            elif pause >= 0.5:
+                lines.append("\n")   # Line break
+                
+        script = " ".join(lines).replace(" \n", "\n").replace("\n ", "\n")
+        script = re.sub(r' +', ' ', script)
+        script = re.sub(r'\n{3,}', '\n\n', script)
+        return script.strip()
+
+    def _generate_with_hume(self, text: str, output_path: str):
         try:
             from hume import HumeClient
             from hume.tts import PostedUtterance, PostedUtteranceVoiceWithId
-
             client = HumeClient(api_key=self.hume_key)
 
-            # Build enriched acting instructions — merge base horror direction
-            # with any emotion cues extracted from the script tags
-            acting = HUME_ACTING_INSTRUCTIONS
-            if emotion_hints:
-                acting += f" Additional emotional cues for this passage: {emotion_hints}."
-
-            # Build utterance
             voice_kwargs = {}
             if HUME_HORROR_VOICE_ID:
                 voice_kwargs["voice"] = PostedUtteranceVoiceWithId(id=HUME_HORROR_VOICE_ID)
 
             utterance = PostedUtterance(
                 text=text,
-                description=acting,
-                **voice_kwargs,
+                description=HUME_GLOBAL_ACTING,
+                **voice_kwargs
             )
 
-            logger.info("Calling Hume Octave TTS (v2, word timestamps)...")
-
-            # Use the synchronous TTS endpoint with word-level timestamps
+            logger.info("Calling Hume Octave TTS (Single Generation)...")
             response = client.tts.synthesize_json(
                 utterances=[utterance],
                 format={"type": "mp3"},
@@ -180,21 +128,16 @@ class AudioGenerator:
             )
 
             if not response or not response.generations:
-                logger.warning("Hume returned empty generations")
                 return None
-
+                
             generation = response.generations[0]
-
-            # ── Save audio ─────────────────────────────────────────────────
             os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
-
-            # audio is base64-encoded in the response
+            
             import base64
             audio_bytes = base64.b64decode(generation.audio)
             with open(output_path, 'wb') as f:
                 f.write(audio_bytes)
 
-            # ── Extract word-level timestamps ──────────────────────────────
             words = []
             if hasattr(generation, 'timestamps') and generation.timestamps:
                 for ts in generation.timestamps:
@@ -205,198 +148,95 @@ class AudioGenerator:
                             "end":   round(ts.end_time,   3),
                         })
 
-            if not words:
-                logger.warning("Hume returned no word timestamps — estimating from duration")
-                words = self._estimate_word_timestamps(text, generation.duration_secs or 30.0)
-
             duration = words[-1]['end'] if words else (generation.duration_secs or 30.0)
-            logger.success(
-                f"Hume Octave: {len(words)} words, {duration:.1f}s → {output_path}"
-            )
             return {"audio_path": output_path, "words": words, "duration": duration}
 
+        except Exception as e:
+            logger.error(f"Hume Octave failed: {e}")
+            return None
+
+    def _overlay_micro_breaths(self, input_path: str, beats: list, words: list, output_path: str):
+        """
+        Overlays subtle human breath sounds strictly on whisper/dread/panic/ending beats.
+        """
+        try:
+            narration = AudioSegment.from_file(input_path)
+            
+            breath_file = "assets/breath_sfx.wav"
+            if not os.path.exists(breath_file):
+                self.generate_sfx("deep subtle human breath", breath_file, duration_seconds=1.5)
+            
+            if os.path.exists(breath_file):
+                breath = AudioSegment.from_file(breath_file)
+                # target volume: -26 dB (subtle)
+                breath = breath + (-26 - breath.dBFS) 
+
+                target_deliveries = ['whisper', 'dread', 'panic', 'ending']
+                
+                word_idx = 0
+                for beat in beats:
+                    if beat.get('delivery') in target_deliveries:
+                        beat_text = beat.get('text', '').split()
+                        if not beat_text: continue
+                        last_word = re.sub(r'[^\w]', '', beat_text[-1].lower())
+                        
+                        found_time = None
+                        while word_idx < len(words):
+                            w = re.sub(r'[^\w]', '', words[word_idx]['text'].lower())
+                            end_time = words[word_idx]['end']
+                            word_idx += 1
+                            if w == last_word:
+                                found_time = end_time * 1000 # ms
+                                break
+                        
+                        if found_time and found_time < len(narration):
+                            # Overlay breath shortly after the word ends
+                            narration = narration.overlay(breath, position=found_time + 100)
+            
+            narration.export(output_path, format="wav")
+            
+        except Exception as e:
+            logger.error(f"Failed to overlay breaths: {e}")
+            # fallback
+            AudioSegment.from_file(input_path).export(output_path, format="wav")
+
+    def _master_audio(self, input_path: str, output_path: str):
+        """
+        Pedalboard Mastering Chain: Compressor -> Saturator -> Reverb -> EQ/Limiter
+        """
+        try:
+            from pedalboard import Pedalboard, Compressor, Reverb, LowShelfFilter, HighShelfFilter, Limiter, Distortion
+            audio, sample_rate = sf.read(input_path)
+            
+            # Ensure audio is mono for pedalboard processing if needed, or pedalboard handles stereo
+            if len(audio.shape) > 1:
+                audio = audio.mean(axis=1)
+
+            board = Pedalboard([
+                Compressor(threshold_db=-20, ratio=4, attack_ms=2.0, release_ms=100),
+                Distortion(drive_db=1.5), # Acts as Saturator for warmth
+                LowShelfFilter(cutoff_hz=100, gain_db=3.0),   # Chesty warmth
+                HighShelfFilter(cutoff_hz=8000, gain_db=-2.0),# Roll off harsh digital highs
+                Reverb(room_size=0.1, damping=0.8, wet_level=0.1, dry_level=0.9), # Subtle room space
+                Limiter(threshold_db=-1.0)
+            ])
+            
+            mastered = board(audio, sample_rate)
+            sf.write(output_path, mastered, sample_rate)
+            logger.success(f"Mastered audio saved to {output_path}")
+            
         except ImportError:
-            logger.warning("hume SDK not installed — run: pip install hume>=0.8.0")
-            return None
+            logger.warning("pedalboard not installed. Skipping mastering chain.")
+            audio, sr = sf.read(input_path)
+            sf.write(output_path, audio, sr)
         except Exception as e:
-            logger.error(f"Hume Octave generation failed: {e}")
-            return None
+            logger.error(f"Failed to master audio: {e}")
+            audio, sr = sf.read(input_path)
+            sf.write(output_path, audio, sr)
 
-    @staticmethod
-    def _estimate_word_timestamps(text: str, total_duration: float) -> list[dict]:
-        """
-        Fallback: uniformly distribute word timestamps across the full audio duration.
-        Used only when Hume returns audio but no timestamp data.
-        """
-        words = [w.strip() for w in text.split() if w.strip()]
-        if not words:
-            return []
-        time_per_word = total_duration / len(words)
-        result = []
-        for i, word in enumerate(words):
-            clean = re.sub(r"[^\w'']", '', word)
-            if clean:
-                result.append({
-                    "text":  clean,
-                    "start": round(i * time_per_word, 3),
-                    "end":   round((i + 1) * time_per_word, 3),
-                })
-        return result
-
-    # ─────────────────────────────────────────────
-    # PRIVATE: Kokoro TTS (secondary fallback)
-    # ─────────────────────────────────────────────
-
-    def _get_kokoro_pipeline(self):
-        if self._kokoro_pipeline is None:
-            try:
-                from kokoro import KPipeline
-                self._kokoro_pipeline = KPipeline(lang_code='a')  # American English
-                logger.info("Kokoro pipeline ready")
-            except Exception as e:
-                logger.warning(f"Kokoro init failed: {e}")
-                return None
-        return self._kokoro_pipeline
-
-    def _generate_with_kokoro(self, text: str, output_path: str):
-        pipeline = self._get_kokoro_pipeline()
-        if not pipeline:
-            return None
-
-        try:
-            import soundfile as sf
-
-            # Split into sentences so we can track timing per sentence
-            sentences = re.split(r'(?<=[.!?…])\s+', text.strip())
-            sentences = [s.strip() for s in sentences if s.strip()]
-
-            all_audio_chunks = []
-            all_words = []
-            current_time = 0.0
-
-            for sentence in sentences:
-                sent_chunks = []
-                try:
-                    generator = pipeline(sentence, voice='am_fenrir', speed=0.85)
-                    for _gs, _ps, audio_chunk in generator:
-                        sent_chunks.append(audio_chunk)
-                except Exception as e:
-                    logger.warning(f"Kokoro chunk failed: {e}")
-                    continue
-
-                if not sent_chunks:
-                    continue
-
-                sent_audio = np.concatenate(sent_chunks)
-                sent_duration = len(sent_audio) / SAMPLE_RATE
-
-                # Distribute duration proportionally across words in the sentence
-                words = [w.strip() for w in sentence.split() if w.strip()]
-                if words:
-                    time_per_word = sent_duration / len(words)
-                    for i, word in enumerate(words):
-                        clean = re.sub(r"[^\w'']", '', word)
-                        if clean:
-                            all_words.append({
-                                "text":  clean,
-                                "start": round(current_time + i * time_per_word, 3),
-                                "end":   round(current_time + (i + 1) * time_per_word, 3),
-                            })
-
-                all_audio_chunks.append(sent_audio)
-                current_time += sent_duration
-
-                # Add a small natural gap between sentences (0.35s)
-                # so the caption chunker can detect the sentence boundary
-                gap_samples = int(0.35 * SAMPLE_RATE)
-                all_audio_chunks.append(np.zeros(gap_samples))
-                current_time += 0.35
-
-            if not all_audio_chunks or not all_words:
-                return None
-
-            final_audio = np.concatenate(all_audio_chunks)
-            os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
-            sf.write(output_path, final_audio, SAMPLE_RATE)
-
-            logger.success(
-                f"Kokoro TTS: {len(all_words)} words, {current_time:.1f}s → {output_path}"
-            )
-            return {
-                "audio_path": output_path,
-                "words": all_words,
-                "duration": current_time,
-            }
-
-        except Exception as e:
-            logger.error(f"Kokoro generation failed: {e}")
-            return None
-
-    # ─────────────────────────────────────────────
-    # PRIVATE: Edge-TTS fallback (last resort)
-    # ─────────────────────────────────────────────
-
-    def _generate_with_edge_tts(self, text: str, output_path: str):
-        try:
-            import edge_tts
-
-            async def _run():
-                communicate = edge_tts.Communicate(
-                    text,
-                    voice="en-US-DavisNeural",   # Deepest, most dramatic male voice
-                    rate="-15%",                 # Slower delivery for horror
-                    pitch="-8Hz",                # Lower pitch = more menacing
-                )
-                word_boundaries = []
-                os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
-
-                with open(output_path, 'wb') as f:
-                    async for chunk in communicate.stream():
-                        if chunk['type'] == 'audio':
-                            f.write(chunk['data'])
-                        elif chunk['type'] == 'WordBoundary':
-                            word_boundaries.append(chunk)
-
-                words = []
-                for wb in word_boundaries:
-                    start = wb['offset'] / 10_000_000       # 100-ns → seconds
-                    dur   = wb['duration'] / 10_000_000
-                    words.append({
-                        "text":  wb['text'],
-                        "start": round(start, 3),
-                        "end":   round(start + dur, 3),
-                    })
-                return words
-
-            words = asyncio.run(_run())
-            if not words:
-                return None
-
-            duration = words[-1]['end']
-            logger.success(
-                f"Edge-TTS: {len(words)} words, {duration:.1f}s → {output_path}"
-            )
-            return {"audio_path": output_path, "words": words, "duration": duration}
-
-        except Exception as e:
-            logger.error(f"Edge-TTS failed: {e}")
-            return None
-
-    # ─────────────────────────────────────────────
-    # PUBLIC: generate_sfx — Freesound.org API
-    # ─────────────────────────────────────────────
-
-    def generate_sfx(self, prompt: str, output_path: str = "assets/sfx.mp3",
-                     duration_seconds: float = None):
-        """
-        Search Freesound.org for contextually relevant SFX and download its preview.
-        Uses a horror-specific keyword map for reliable results.
-        Falls back to silence if nothing found.
-        """
+    def generate_sfx(self, prompt: str, output_path: str = "assets/sfx.mp3", duration_seconds: float = None):
         try:
             query = self._build_freesound_query(prompt)
-            logger.info(f"Freesound SFX search: '{query}' (from prompt: '{prompt}')")
-
             url = "https://freesound.org/apiv2/search/text/"
             params = {
                 "query": query,
@@ -407,26 +247,19 @@ class AudioGenerator:
             }
 
             resp = requests.get(url, params=params, timeout=20)
-            logger.debug(f"Freesound response: {resp.status_code}")
-
             if resp.status_code == 200:
-                data = resp.json()
-                results = data.get('results', [])
+                results = resp.json().get('results', [])
                 if results:
                     sound = results[0]
-                    preview_url = sound['previews'].get(
-                        'preview-hq-mp3', sound['previews'].get('preview-lq-mp3')
-                    )
+                    preview_url = sound['previews'].get('preview-hq-mp3', sound['previews'].get('preview-lq-mp3'))
                     if preview_url:
                         os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
                         pr = requests.get(preview_url, timeout=30)
                         if pr.status_code == 200:
                             with open(output_path, 'wb') as f:
                                 f.write(pr.content)
-                            logger.success(f"SFX '{sound['name']}' → {output_path}")
                             return output_path
 
-            logger.warning(f"No SFX found for '{query}', writing silence")
             self._create_silence(output_path, duration=duration_seconds or 3.0)
             return output_path
 
@@ -435,47 +268,18 @@ class AudioGenerator:
             self._create_silence(output_path, duration=duration_seconds or 3.0)
             return output_path
 
-    @staticmethod
-    def _build_freesound_query(prompt: str) -> str:
-        """
-        Convert a potentially long sfx_prompt into a short, reliable Freesound query.
-        Checks the horror keyword map first, then falls back to keyword extraction.
-        """
+    def _build_freesound_query(self, prompt: str) -> str:
         prompt_lower = prompt.lower()
-
-        # Check horror keyword map — return the mapped term if any key matches
         for key, mapped_query in HORROR_SFX_MAP.items():
             if key in prompt_lower:
                 return mapped_query
+        return "horror ambient"
 
-        # Fallback: strip stop words and take top 3 keywords
-        stop_words = {
-            'a','an','the','with','in','on','at','for','of','and','or',
-            'is','it','its','this','that','to','into','very','old','dark',
-            'deep','soft','low','high','loud','distant','sudden','slowly',
-        }
-        raw_words = re.findall(r'\w+', prompt_lower)
-        keywords = [w for w in raw_words if w not in stop_words and len(w) > 2]
-        return ' '.join(keywords[:3]) if keywords else "horror ambient"
-
-    # ─────────────────────────────────────────────
-    # PUBLIC: generate_music — HuggingFace MusicGen
-    # ─────────────────────────────────────────────
-
-    def generate_music(self, mood_prompt: str,
-                       output_path: str = "assets/music.wav",
-                       duration_seconds: int = 30):
-        """
-        Generate slow, atmospheric background music via HuggingFace MusicGen.
-        The music MUST be slow, dim, and never upbeat — it plays quietly under narration.
-        Falls back to Freesound ambient drone search.
-        """
+    def generate_music(self, mood_prompt: str, output_path: str = "assets/music.wav", duration_seconds: int = 30):
         try:
             from huggingface_hub import InferenceClient
-
             client = InferenceClient(token=self.hf_token)
 
-            # Very specific slow-horror prompt — avoids fast/upbeat generation
             music_prompt = (
                 f"slow dark horror ambient drone, {mood_prompt}, "
                 "40 BPM, deep sustained bass tones, eerie silence with texture, "
@@ -483,94 +287,21 @@ class AudioGenerator:
                 "cinematic tension, long slow notes, dark atmospheric sound design, "
                 "whisper-quiet background, spine-chilling, sub-bass rumble"
             )
-            logger.info(f"MusicGen: {music_prompt[:90]}...")
 
-            audio_bytes = client.text_to_audio(
-                music_prompt,
-                model="facebook/musicgen-small",
-            )
-
+            audio_bytes = client.text_to_audio(music_prompt, model="facebook/musicgen-small")
             os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
             with open(output_path, 'wb') as f:
                 f.write(audio_bytes)
-
-            logger.success(f"MusicGen music → {output_path}")
             return output_path
 
         except Exception as e:
             logger.warning(f"MusicGen failed ({e}) — falling back to Freesound ambient")
-            return self._music_freesound_fallback(mood_prompt, output_path)
-
-    def _music_freesound_fallback(self, mood_prompt: str, output_path: str) -> str:
-        """
-        Multi-tier Freesound fallback for background music.
-        Tries increasingly generic slow-horror ambient queries until one succeeds.
-        """
-        queries = [
-            f"slow horror ambient {mood_prompt[:20]}",
-            "dark ambient drone horror",
-            "horror atmosphere ambient",
-            "dark drone slow ambient",
-            "horror ambient",
-        ]
-        for query in queries:
-            result = self._try_freesound_download(query, output_path)
-            if result:
-                return result
-
-        logger.warning("All Freesound music fallbacks failed — using silence")
-        self._create_silence(output_path, duration=30.0)
-        return output_path
-
-    def _try_freesound_download(self, query: str, output_path: str):
-        """Attempt a single Freesound query and download the top result."""
-        try:
-            url = "https://freesound.org/apiv2/search/text/"
-            params = {
-                "query": query,
-                "token": self.freesound_key,
-                "fields": "id,name,previews,duration",
-                "sort": "rating_desc",
-                "page_size": 3,
-            }
-            resp = requests.get(url, params=params, timeout=15)
-            if resp.status_code == 200:
-                results = resp.json().get('results', [])
-                if results:
-                    preview_url = results[0]['previews'].get(
-                        'preview-hq-mp3', results[0]['previews'].get('preview-lq-mp3')
-                    )
-                    if preview_url:
-                        os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
-                        pr = requests.get(preview_url, timeout=30)
-                        if pr.status_code == 200:
-                            with open(output_path, 'wb') as f:
-                                f.write(pr.content)
-                            logger.success(
-                                f"Music from Freesound '{results[0]['name']}' → {output_path}"
-                            )
-                            return output_path
-        except Exception as e:
-            logger.debug(f"Freesound query '{query}' failed: {e}")
-        return None
-
-    # ─────────────────────────────────────────────
-    # PRIVATE: helpers
-    # ─────────────────────────────────────────────
+            return self.generate_sfx("horror ambient drone", output_path, duration_seconds)
 
     def _create_silence(self, output_path: str, duration: float = 3.0):
-        """Write a silent WAV file as a safe placeholder."""
         try:
-            import soundfile as sf
             os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
             silence = np.zeros(int(duration * SAMPLE_RATE))
             sf.write(output_path, silence, SAMPLE_RATE)
-            logger.info(f"Silence placeholder → {output_path}")
         except Exception as e:
             logger.error(f"Failed to create silence: {e}")
-
-
-if __name__ == "__main__":
-    gen = AudioGenerator()
-    r = gen.generate_speech("In the heart of the whispering woods, something hungry waits.")
-    print(r)
