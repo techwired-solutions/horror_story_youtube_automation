@@ -148,7 +148,12 @@ class AudioGenerator:
                             "end":   round(ts.end_time,   3),
                         })
 
-            duration = words[-1]['end'] if words else (generation.duration_secs or 30.0)
+            if words:
+                duration = words[-1]['end']
+            else:
+                import soundfile as sf
+                duration = sf.info(output_path).duration
+            
             return {"audio_path": output_path, "words": words, "duration": duration}
 
         except Exception as e:
