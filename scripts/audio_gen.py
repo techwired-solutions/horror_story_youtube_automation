@@ -125,6 +125,7 @@ class AudioGenerator:
                 utterances=[utterance],
                 format={"type": "mp3"},
                 include_timestamp_types=["word"],
+                version=2,
             )
 
             if not response or not response.generations:

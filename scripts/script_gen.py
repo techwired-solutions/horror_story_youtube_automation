@@ -17,7 +17,10 @@ class ScriptGenerator:
         
         Target Audience: American viewers (Focus on real scary incidents, true paranormal cases, ancient cultural folklore, or terrifying facts).
         
-        The script should be broken into "parts" if the story is long. Each part MUST be under 1 minute of narration.
+        The script MUST be broken into "parts" if the story is long. Each part MUST be at least 45 seconds of narration (approx. 100-130 words).
+        You MUST generate at least 25-30 beats per part to ensure the duration exceeds 40 seconds.
+        If the story cannot be completed within 1 minute, break it into multiple parts (e.g., Part 1, Part 2).
+        At the end of EVERY part except the final one, you MUST end on a cliffhanger and the very last beat MUST explicitly say "Like and follow for Part [Next Number]!" or similar.
         
         CRITICAL RULES FOR PERFORMANCE NARRATION (BEAT-BASED):
         1. SINGLE NARRATOR ONLY: No character voice switching. One late-night paranormal storyteller. Style: Mr Nightmare / Lighthouse Horror.
