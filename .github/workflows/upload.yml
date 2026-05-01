@@ -59,6 +59,8 @@ jobs:
           sudo apt-get install -y espeak-ng
           # libsndfile — required by soundfile / sf.write
           sudo apt-get install -y libsndfile1
+          # ffmpeg — required by pydub
+          sudo apt-get install -y ffmpeg
 
       # ── Playwright ──────────────────────────────────────────────────────────
       - name: Install Playwright
