@@ -53,17 +53,17 @@ class AudioGenerator:
 
     def generate_speech(self, beats: list, output_path: str = "assets/speech.mp3"):
         """
-        Takes an array of beats, compiles them into a single performance script,
-        generates the narration via Hume, overlays micro-breaths, and masters the audio.
+        Takes an array of beats, generates one Hume utterance per beat with
+        trailing_silence for dramatic pauses, overlays micro-breaths, and masters audio.
         Returns: {"audio_path": str, "words": [{text, start, end}], "duration": float}
         """
         performance_script = self._compile_performance_script(beats)
         logger.info(f"Compiled Performance Script:\n{performance_script[:200]}...")
 
-        # 1. Generate Core Narration (Hume)
+        # 1. Generate Core Narration — pass beats directly for per-beat pauses
         raw_output_path = output_path.replace(".mp3", "_raw.mp3")
-        result = self._generate_with_hume(performance_script, raw_output_path)
-        
+        result = self._generate_with_hume(beats, raw_output_path)
+
         if not result:
             logger.error("Hume generation failed. Check API key and quota.")
             return None
@@ -74,7 +74,7 @@ class AudioGenerator:
 
         # 3. Master Audio
         self._master_audio(with_breaths_path, output_path)
-        
+
         result["audio_path"] = output_path
         return result
 
@@ -104,7 +104,24 @@ class AudioGenerator:
         script = re.sub(r'\n{3,}', '\n\n', script)
         return script.strip()
 
-    def _generate_with_hume(self, text: str, output_path: str):
+    # Minimum trailing silence (seconds) per delivery type for horror pacing
+    _DELIVERY_MIN_PAUSE = {
+        "calm":    0.3,
+        "unease":  0.5,
+        "dread":   0.8,
+        "whisper": 1.0,
+        "reveal":  1.2,
+        "panic":   0.5,
+        "terror":  0.8,
+        "ending":  1.5,
+    }
+
+    def _generate_with_hume(self, beats: list, output_path: str):
+        """
+        Sends one PostedUtterance per beat so each beat gets its own trailing
+        silence — this is what produces the dramatic pause timing the narrator needs.
+        Snippet extraction uses a flat iteration (Hume v1 SDK structure).
+        """
         try:
             from hume import HumeClient
             from hume.tts import PostedUtterance, PostedUtteranceVoiceWithId, PostedUtteranceVoiceWithName
@@ -116,15 +133,30 @@ class AudioGenerator:
             else:
                 voice_kwargs["voice"] = PostedUtteranceVoiceWithName(name="ITO", provider="HUME_AI")
 
-            utterance = PostedUtterance(
-                text=text,
-                description=HUME_GLOBAL_ACTING,
-                **voice_kwargs
-            )
+            # One utterance per beat with delivery-aware trailing silence
+            utterances = []
+            for beat in beats:
+                text = beat.get("text", "").strip()
+                if not text:
+                    continue
+                pause      = float(beat.get("pause_after", 0.3))
+                delivery   = beat.get("delivery", "calm")
+                min_pause  = self._DELIVERY_MIN_PAUSE.get(delivery, 0.3)
+                trailing   = max(pause, min_pause)
+                utterances.append(PostedUtterance(
+                    text=text,
+                    description=HUME_GLOBAL_ACTING,
+                    trailing_silence=trailing,
+                    **voice_kwargs
+                ))
 
-            logger.info("Calling Hume Octave TTS (Single Generation)...")
+            if not utterances:
+                logger.error("No utterances built from beats.")
+                return None
+
+            logger.info(f"Calling Hume Octave TTS ({len(utterances)} utterances with pauses)...")
             response = client.tts.synthesize_json(
-                utterances=[utterance],
+                utterances=utterances,
                 format={"type": "mp3"},
                 include_timestamp_types=["word"],
                 version="1",
@@ -132,34 +164,36 @@ class AudioGenerator:
 
             if not response or not response.generations:
                 return None
-                
+
             generation = response.generations[0]
             os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
-            
+
             import base64
             audio_bytes = base64.b64decode(generation.audio)
             with open(output_path, 'wb') as f:
                 f.write(audio_bytes)
 
+            # ── Snippet extraction: Hume v1 returns a FLAT list of SnippetAudioResult
+            # (not a list-of-lists). Iterating as nested was the caption bug.
             words = []
             if hasattr(generation, 'snippets') and generation.snippets:
-                for snippet_group in generation.snippets:
-                    for snippet in snippet_group:
-                        if hasattr(snippet, 'timestamps') and snippet.timestamps:
-                            for ts in snippet.timestamps:
-                                if getattr(ts, 'type', '') == 'word':
-                                    words.append({
-                                        "text":  ts.text,
-                                        "start": ts.time.begin / 1000.0,
-                                        "end":   ts.time.end / 1000.0,
-                                    })
+                for snippet in generation.snippets:
+                    if hasattr(snippet, 'timestamps') and snippet.timestamps:
+                        for ts in snippet.timestamps:
+                            if getattr(ts, 'type', '') == 'word':
+                                words.append({
+                                    "text":  ts.text,
+                                    "start": ts.time.begin / 1000.0,
+                                    "end":   ts.time.end   / 1000.0,
+                                })
 
             if words:
                 duration = words[-1]['end']
             else:
                 import soundfile as sf
                 duration = sf.info(output_path).duration
-            
+
+            logger.success(f"Extracted {len(words)} word timestamps, duration: {duration:.1f}s")
             return {"audio_path": output_path, "words": words, "duration": duration}
 
         except Exception as e:
@@ -287,32 +321,12 @@ class AudioGenerator:
         return "horror ambient"
 
     def generate_music(self, mood_prompt: str, output_path: str = "assets/music.wav", duration_seconds: int = 30):
-        try:
-            music_prompt = (
-                f"slow dark horror ambient drone, {mood_prompt}, "
-                "40 BPM, deep sustained bass tones, eerie silence with texture, "
-                "minimal, no percussion, no melody, no rhythm, no beat, "
-                "cinematic tension, long slow notes, dark atmospheric sound design, "
-                "whisper-quiet background, spine-chilling, sub-bass rumble"
-            )
-
-            API_URL = "https://api-inference.huggingface.co/models/facebook/musicgen-small"
-            headers = {"Authorization": f"Bearer {self.hf_token}"}
-            payload = {"inputs": music_prompt}
-            
-            response = requests.post(API_URL, headers=headers, json=payload, timeout=60)
-            if response.status_code != 200:
-                raise Exception(f"HF API Error: {response.text}")
-                
-            audio_bytes = response.content
-            os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
-            with open(output_path, 'wb') as f:
-                f.write(audio_bytes)
-            return output_path
-
-        except Exception as e:
-            logger.warning(f"MusicGen failed ({e}) — falling back to Freesound ambient")
-            return self.generate_sfx("horror ambient drone", output_path, duration_seconds)
+        """
+        Uses Freesound for background horror ambient music.
+        HuggingFace MusicGen endpoint is unreliable and has been removed.
+        """
+        logger.info(f"Fetching horror ambient music from Freesound for mood: {mood_prompt[:60]}")
+        return self.generate_sfx("horror ambient drone", output_path, duration_seconds)
 
     def _create_silence(self, output_path: str, duration: float = 3.0):
         try:
