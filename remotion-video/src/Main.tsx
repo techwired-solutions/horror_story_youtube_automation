@@ -31,7 +31,7 @@ interface Props {
 
 export const Main: React.FC = () => {
   const { fps, durationInFrames } = useVideoConfig();
-  const inputProps = getInputProps() as Props;
+  const inputProps = getInputProps() as unknown as Props;
 
   const props = {
     title: inputProps.title || "Horror Story",
