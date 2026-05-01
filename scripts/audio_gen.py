@@ -107,12 +107,14 @@ class AudioGenerator:
     def _generate_with_hume(self, text: str, output_path: str):
         try:
             from hume import HumeClient
-            from hume.tts import PostedUtterance, PostedUtteranceVoiceWithId
+            from hume.tts import PostedUtterance, PostedUtteranceVoiceWithId, PostedUtteranceVoiceWithName
             client = HumeClient(api_key=self.hume_key)
 
             voice_kwargs = {}
             if HUME_HORROR_VOICE_ID:
                 voice_kwargs["voice"] = PostedUtteranceVoiceWithId(id=HUME_HORROR_VOICE_ID)
+            else:
+                voice_kwargs["voice"] = PostedUtteranceVoiceWithName(name="ITO", provider="HUME_AI")
 
             utterance = PostedUtterance(
                 text=text,
