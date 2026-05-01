@@ -139,14 +139,17 @@ class AudioGenerator:
                 f.write(audio_bytes)
 
             words = []
-            if hasattr(generation, 'timestamps') and generation.timestamps:
-                for ts in generation.timestamps:
-                    if hasattr(ts, 'type') and ts.type == 'word':
-                        words.append({
-                            "text":  ts.value,
-                            "start": round(ts.start_time, 3),
-                            "end":   round(ts.end_time,   3),
-                        })
+            if hasattr(generation, 'snippets') and generation.snippets:
+                for snippet_group in generation.snippets:
+                    for snippet in snippet_group:
+                        if hasattr(snippet, 'timestamps') and snippet.timestamps:
+                            for ts in snippet.timestamps:
+                                if getattr(ts, 'type', '') == 'word':
+                                    words.append({
+                                        "text":  ts.text,
+                                        "start": ts.time.begin / 1000.0,
+                                        "end":   ts.time.end / 1000.0,
+                                    })
 
             if words:
                 duration = words[-1]['end']
@@ -220,8 +223,8 @@ class AudioGenerator:
             board = Pedalboard([
                 Compressor(threshold_db=-20, ratio=4, attack_ms=2.0, release_ms=100),
                 Distortion(drive_db=1.5), # Acts as Saturator for warmth
-                LowShelfFilter(cutoff_hz=100, gain_db=3.0),   # Chesty warmth
-                HighShelfFilter(cutoff_hz=8000, gain_db=-2.0),# Roll off harsh digital highs
+                LowShelfFilter(cutoff_frequency_hz=100, gain_db=3.0),   # Chesty warmth
+                HighShelfFilter(cutoff_frequency_hz=8000, gain_db=-2.0),# Roll off harsh digital highs
                 Reverb(room_size=0.1, damping=0.8, wet_level=0.1, dry_level=0.9), # Subtle room space
                 Limiter(threshold_db=-1.0)
             ])
@@ -282,9 +285,6 @@ class AudioGenerator:
 
     def generate_music(self, mood_prompt: str, output_path: str = "assets/music.wav", duration_seconds: int = 30):
         try:
-            from huggingface_hub import InferenceClient
-            client = InferenceClient(token=self.hf_token)
-
             music_prompt = (
                 f"slow dark horror ambient drone, {mood_prompt}, "
                 "40 BPM, deep sustained bass tones, eerie silence with texture, "
@@ -293,7 +293,15 @@ class AudioGenerator:
                 "whisper-quiet background, spine-chilling, sub-bass rumble"
             )
 
-            audio_bytes = client.text_to_audio(music_prompt, model="facebook/musicgen-small")
+            API_URL = "https://api-inference.huggingface.co/models/facebook/musicgen-small"
+            headers = {"Authorization": f"Bearer {self.hf_token}"}
+            payload = {"inputs": music_prompt}
+            
+            response = requests.post(API_URL, headers=headers, json=payload, timeout=60)
+            if response.status_code != 200:
+                raise Exception(f"HF API Error: {response.text}")
+                
+            audio_bytes = response.content
             os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
             with open(output_path, 'wb') as f:
                 f.write(audio_bytes)
