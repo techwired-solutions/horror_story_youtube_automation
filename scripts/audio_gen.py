@@ -163,7 +163,7 @@ class AudioGenerator:
             return None
 
         try:
-            logger.info("Calling NVIDIA NIM API (Parler-TTS)...")
+            logger.info("Calling NVIDIA NIM API for TTS...")
             text = " ".join([b.get("text", "") for b in beats]).strip()
             text = re.sub(r'\s+', ' ', text)
             if not text:
@@ -175,21 +175,29 @@ class AudioGenerator:
                 "Accept": "audio/mp3"
             }
             
-            payload = {
-                "model": "nvidia/parler-tts-mini-v1",
-                "input": text,
-                "voice": "A male speaker with a low, deep, and slightly sinister voice delivering a horror story. He speaks slowly with dramatic pauses.",
-            }
+            models_to_try = [
+                "nvidia/nemotron-voicechat",
+                "nvidia/magpie-tts"
+            ]
             
-            resp = requests.post("https://ai.api.nvidia.com/v1/audio/speech", headers=headers, json=payload, timeout=60)
-            if resp.status_code == 200:
-                os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
-                with open(output_path, 'wb') as f:
-                    f.write(resp.content)
-                return self._estimate_word_boundaries(text, output_path)
-            else:
-                logger.error(f"NVIDIA API Error {resp.status_code}: {resp.text}")
-                return None
+            for model_name in models_to_try:
+                payload = {
+                    "model": model_name,
+                    "input": text,
+                    "voice": "A male speaker with a low, deep, and slightly sinister voice delivering a horror story. He speaks slowly with dramatic pauses.",
+                }
+                
+                logger.info(f"Trying NVIDIA TTS model: {model_name}")
+                resp = requests.post("https://integrate.api.nvidia.com/v1/audio/speech", headers=headers, json=payload, timeout=60)
+                if resp.status_code == 200:
+                    os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
+                    with open(output_path, 'wb') as f:
+                        f.write(resp.content)
+                    return self._estimate_word_boundaries(text, output_path)
+                else:
+                    logger.error(f"NVIDIA API Error {resp.status_code} with {model_name}: {resp.text}")
+            
+            return None
         except Exception as e:
             logger.error(f"NVIDIA generation failed: {e}")
             return None
