@@ -302,7 +302,13 @@ class AudioGenerator:
                 os.getenv("HUME_API_KEY"),
                 os.getenv("HUME_API_KEY1"),
                 os.getenv("HUME_API_KEY2"),
-                os.getenv("HUME_API_KEY3")
+                os.getenv("HUME_API_KEY3"),
+                os.getenv("HUME_API_KEY4"),
+                os.getenv("HUME_API_KEY5"),
+                os.getenv("HUME_API_KEY6"),
+                os.getenv("HUME_API_KEY7"),
+                os.getenv("HUME_API_KEY8"),
+                os.getenv("HUME_API_KEY9")
             ]
             # Filter out empty or None keys
             hume_keys = [k for k in hume_keys if k]
@@ -326,6 +332,11 @@ class AudioGenerator:
                     utterances = []
                     for beat in beats:
                         text = beat.get("text", "").strip()
+                        # Sanitize text to remove brackets and asterisks
+                        text = re.sub(r'\[.*?\]', '', text)
+                        text = re.sub(r'\*.*?\*', '', text)
+                        text = re.sub(r'\(.*?\)', '', text)
+                        text = text.strip()
                         if not text:
                             continue
                         pause      = float(beat.get("pause_after", 0.3))
@@ -334,7 +345,7 @@ class AudioGenerator:
                         trailing   = max(pause, min_pause)
                         utterances.append(PostedUtterance(
                             text=text,
-                            description=HUME_GLOBAL_ACTING,
+                            description=f"{HUME_GLOBAL_ACTING} Delivery style for this line: {delivery}.",
                             trailing_silence=trailing,
                             **voice_kwargs
                         ))
@@ -370,10 +381,16 @@ class AudioGenerator:
                             if hasattr(snippet, 'timestamps') and snippet.timestamps:
                                 for ts in snippet.timestamps:
                                     if getattr(ts, 'type', '') == 'word':
+                                        # Hume API might return seconds directly. If values are large, it's milliseconds.
+                                        begin_val = getattr(ts.time, 'begin', 0.0)
+                                        end_val = getattr(ts.time, 'end', 0.0)
+                                        start_sec = begin_val if begin_val < 1000 and begin_val > 0 else begin_val / 1000.0
+                                        end_sec = end_val if end_val < 1000 and end_val > 0 else end_val / 1000.0
+                                        
                                         words.append({
                                             "text":  ts.text,
-                                            "start": ts.time.begin / 1000.0,
-                                            "end":   ts.time.end   / 1000.0,
+                                            "start": start_sec,
+                                            "end":   end_sec,
                                         })
         
                     if words:
@@ -386,7 +403,6 @@ class AudioGenerator:
                 
                 except Exception as inner_e:
                     logger.warning(f"Hume API key {i+1} failed: {inner_e}")
-                    # Loop continues to the next key if one is available
             
             logger.error("All Hume API keys failed or exhausted credits.")
             return None

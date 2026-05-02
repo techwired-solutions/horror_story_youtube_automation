@@ -71,7 +71,7 @@ class ScriptGenerator:
            - period = medium pause
            - ellipsis (...) = heavy suspense, let it hang
            - dash (—) = abrupt, shocking realization
-        6. NO BRACKET TAGS: Do not write [whispers] in the text. Use the 'delivery' field instead.
+        6. NO BRACKET TAGS OR ASTERISKS: Do not write [whispers], *sighs*, or (laughs) in the text. The text will be read by an AI, so ONLY write the exact words to be spoken out loud. Use the 'delivery' field instead.
         7. DELIVERY MODES: Must be exactly one of: calm, unease, dread, whisper, reveal, panic, terror, ending.
         8. PACING: hook within 2 seconds, open loop curiosity, escalating dread, cliffhanger if multipart.
 
