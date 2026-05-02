@@ -71,6 +71,8 @@ class AudioGenerator:
         performance_script = self._compile_performance_script(beats)
         logger.info(f"Compiled Performance Script:\n{performance_script[:200]}...")
 
+        os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
+        
         # Fallback Chain: NVIDIA -> Hume -> Bark -> Edge-TTS
         raw_output_path = output_path.replace(".mp3", "_raw.mp3")
         

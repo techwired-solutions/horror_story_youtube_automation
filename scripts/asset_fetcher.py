@@ -58,7 +58,7 @@ class AssetFetcher:
             return None
             
         logger.info(f"Generating image with NVIDIA NIM (SDXL)...")
-        url = "https://ai.api.nvidia.com/v1/genai/stabilityai/stable-diffusion-xl"
+        url = "https://integrate.api.nvidia.com/v1/images/generations"
         headers = {
             "Authorization": f"Bearer {nvidia_api_key}",
             "Accept": "application/json",
@@ -66,23 +66,16 @@ class AssetFetcher:
         }
         
         payload = {
-            "text_prompts": [
-                {
-                    "text": prompt,
-                    "weight": 1
-                }
-            ],
-            "cfg_scale": 5,
-            "sampler": "K_DPM_2_ANCESTRAL",
-            "seed": 0,
-            "steps": 25
+            "model": "stabilityai/stable-diffusion-xl",
+            "prompt": prompt,
+            "response_format": "b64_json"
         }
         
         try:
             resp = requests.post(url, headers=headers, json=payload, timeout=60)
             if resp.status_code == 200:
                 data = resp.json()
-                b64_img = data["artifacts"][0]["base64"]
+                b64_img = data["data"][0]["b64_json"]
                 return f"data:image/jpeg;base64,{b64_img}"
             else:
                 logger.error(f"NVIDIA Image Error: {resp.status_code} {resp.text}")
