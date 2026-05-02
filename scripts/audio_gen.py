@@ -57,15 +57,39 @@ class AudioGenerator:
         trailing_silence for dramatic pauses, overlays micro-breaths, and masters audio.
         Returns: {"audio_path": str, "words": [{text, start, end}], "duration": float}
         """
+        # Filter duplicate consecutive lines
+        filtered_beats = []
+        prev_text = ""
+        for b in beats:
+            t = b.get("text", "").strip()
+            if t and t.lower() == prev_text.lower():
+                continue
+            filtered_beats.append(b)
+            prev_text = t
+        beats = filtered_beats
+
         performance_script = self._compile_performance_script(beats)
         logger.info(f"Compiled Performance Script:\n{performance_script[:200]}...")
 
-        # 1. Generate Core Narration — pass beats directly for per-beat pauses
+        # Fallback Chain: NVIDIA -> Hume -> Bark -> Edge-TTS
         raw_output_path = output_path.replace(".mp3", "_raw.mp3")
-        result = self._generate_with_hume(beats, raw_output_path)
+        
+        result = self._generate_with_nvidia(beats, raw_output_path)
+        
+        if not result:
+            logger.warning("NVIDIA generation failed or no key. Falling back to Hume...")
+            result = self._generate_with_hume(beats, raw_output_path)
 
         if not result:
-            logger.error("Hume generation failed. Check API key and quota.")
+            logger.warning("Hume generation failed. Falling back to Bark...")
+            result = self._generate_with_bark(beats, raw_output_path)
+
+        if not result:
+            logger.warning("Bark generation failed. Falling back to Edge-TTS...")
+            result = self._generate_with_edge_tts(beats, raw_output_path)
+
+        if not result:
+            logger.error("Speech generation failed entirely — aborting props build.")
             return None
 
         # 2. Add Micro-Breaths
@@ -103,6 +127,113 @@ class AudioGenerator:
         script = re.sub(r' +', ' ', script)
         script = re.sub(r'\n{3,}', '\n\n', script)
         return script.strip()
+
+    def _estimate_word_boundaries(self, text: str, output_path: str):
+        try:
+            import soundfile as sf
+            duration = sf.info(output_path).duration
+            
+            words = text.split()
+            if not words:
+                return {"audio_path": output_path, "words": [], "duration": duration}
+                
+            time_per_word = duration / len(words)
+            word_objs = []
+            current_time = 0.0
+            
+            for w in words:
+                word_objs.append({
+                    "text": w,
+                    "start": current_time,
+                    "end": current_time + time_per_word
+                })
+                current_time += time_per_word
+                
+            logger.success(f"Estimated {len(word_objs)} word timestamps, duration: {duration:.1f}s")
+            return {"audio_path": output_path, "words": word_objs, "duration": duration}
+        except Exception as e:
+            logger.error(f"Failed to estimate boundaries: {e}")
+            return None
+
+    def _generate_with_nvidia(self, beats: list, output_path: str):
+        api_key = os.getenv("NVIDIA_NIM_API_KEY")
+        if not api_key:
+            return None
+
+        try:
+            logger.info("Calling NVIDIA NIM API (Parler-TTS)...")
+            text = " ".join([b.get("text", "") for b in beats]).strip()
+            text = re.sub(r'\s+', ' ', text)
+            if not text:
+                return None
+                
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+                "Accept": "audio/mp3"
+            }
+            
+            payload = {
+                "model": "nvidia/parler-tts-mini-v1",
+                "input": text,
+                "voice": "A male speaker with a low, deep, and slightly sinister voice delivering a horror story. He speaks slowly with dramatic pauses.",
+            }
+            
+            resp = requests.post("https://ai.api.nvidia.com/v1/audio/speech", headers=headers, json=payload, timeout=60)
+            if resp.status_code == 200:
+                os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
+                with open(output_path, 'wb') as f:
+                    f.write(resp.content)
+                return self._estimate_word_boundaries(text, output_path)
+            else:
+                logger.error(f"NVIDIA API Error {resp.status_code}: {resp.text}")
+                return None
+        except Exception as e:
+            logger.error(f"NVIDIA generation failed: {e}")
+            return None
+
+    def _generate_with_bark(self, beats: list, output_path: str):
+        try:
+            from bark import generate_audio, preload_models, SAMPLE_RATE
+            import scipy.io.wavfile as wav
+            import subprocess
+            
+            logger.info("Calling Bark TTS...")
+            text = " ".join([b.get("text", "") for b in beats]).strip()
+            text = re.sub(r'\s+', ' ', text)
+            if not text:
+                return None
+                
+            if self.hf_token:
+                os.environ["HF_TOKEN"] = self.hf_token
+                
+            preload_models()
+            bark_text = f"[clears throat] {text}"
+            audio_array = generate_audio(bark_text, history_prompt="v2/en_speaker_2")
+            
+            wav_path = output_path.replace(".mp3", ".wav")
+            os.makedirs(os.path.dirname(wav_path) or '.', exist_ok=True)
+            wav.write(wav_path, rate=SAMPLE_RATE, data=audio_array)
+            
+            result = subprocess.run(
+                ["ffmpeg", "-y", "-i", wav_path, "-codec:a", "libmp3lame", "-qscale:a", "2", output_path],
+                capture_output=True, timeout=120
+            )
+            
+            if os.path.exists(wav_path):
+                os.remove(wav_path)
+                
+            if result.returncode == 0 and os.path.exists(output_path):
+                return self._estimate_word_boundaries(text, output_path)
+            else:
+                logger.error("Bark ffmpeg conversion failed.")
+                return None
+        except ImportError:
+            logger.warning("Bark is not installed (`pip install bark`). Skipping.")
+            return None
+        except Exception as e:
+            logger.error(f"Bark generation failed: {e}")
+            return None
 
     # Minimum trailing silence (seconds) per delivery type for horror pacing
     _DELIVERY_MIN_PAUSE = {
@@ -198,6 +329,58 @@ class AudioGenerator:
 
         except Exception as e:
             logger.error(f"Hume Octave failed: {e}")
+            return None
+
+    def _generate_with_edge_tts(self, beats: list, output_path: str):
+        try:
+            import edge_tts
+            
+            # Combine text
+            text = " ".join([b.get("text", "") for b in beats]).strip()
+            text = re.sub(r'\s+', ' ', text)
+            if not text:
+                return None
+            
+            # Using GuyNeural as deep voice fallback
+            voice = "en-US-ChristopherNeural"
+            communicate = edge_tts.Communicate(text, voice, rate="-10%", pitch="-15Hz")
+            
+            word_boundaries = []
+            
+            async def run_edge():
+                with open(output_path, "wb") as f:
+                    async for chunk in communicate.stream():
+                        if chunk["type"] == "audio":
+                            f.write(chunk["data"])
+                        elif chunk["type"] == "WordBoundary":
+                            word_boundaries.append({
+                                "text": chunk["text"],
+                                "offset": chunk["offset"],
+                                "duration": chunk["duration"]
+                            })
+            
+            asyncio.run(run_edge())
+            
+            words = []
+            for wb in word_boundaries:
+                start = wb["offset"] / 10000000.0
+                end = start + (wb["duration"] / 10000000.0)
+                words.append({
+                    "text": wb["text"],
+                    "start": start,
+                    "end": end
+                })
+            
+            if words:
+                duration = words[-1]["end"]
+            else:
+                import soundfile as sf
+                duration = sf.info(output_path).duration
+            
+            logger.success(f"Edge-TTS fallback success. {len(words)} words, duration: {duration:.1f}s")
+            return {"audio_path": output_path, "words": words, "duration": duration}
+        except Exception as e:
+            logger.error(f"Edge-TTS failed: {e}")
             return None
 
     def _overlay_micro_breaths(self, input_path: str, beats: list, words: list, output_path: str):

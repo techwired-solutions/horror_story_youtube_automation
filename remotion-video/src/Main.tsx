@@ -116,7 +116,7 @@ export const Main: React.FC = () => {
         const startFrame = Math.floor(priorDuration * fps * durationMultiplier);
         return (
           <Sequence key={`sfx-${index}`} from={startFrame}>
-            <Audio src={staticFile(beat.sfx_url)} volume={0.3} />
+            <Audio src={staticFile(beat.sfx_url)} volume={0.15} />
           </Sequence>
         );
       })}

@@ -52,23 +52,78 @@ class AssetFetcher:
             else:
                 logger.warning(f"No videos found for query: {query}")
                 return None
+    def _generate_image_nvidia(self, prompt: str):
+        nvidia_api_key = os.getenv("NVIDIA_NIM_API_KEY")
+        if not nvidia_api_key:
+            return None
+            
+        logger.info(f"Generating image with NVIDIA NIM (SDXL)...")
+        url = "https://ai.api.nvidia.com/v1/genai/stabilityai/stable-diffusion-xl"
+        headers = {
+            "Authorization": f"Bearer {nvidia_api_key}",
+            "Accept": "application/json",
+            "Content-Type": "application/json"
+        }
+        
+        payload = {
+            "text_prompts": [
+                {
+                    "text": prompt,
+                    "weight": 1
+                }
+            ],
+            "cfg_scale": 5,
+            "sampler": "K_DPM_2_ANCESTRAL",
+            "seed": 0,
+            "steps": 25
+        }
+        
+        try:
+            resp = requests.post(url, headers=headers, json=payload, timeout=60)
+            if resp.status_code == 200:
+                data = resp.json()
+                b64_img = data["artifacts"][0]["base64"]
+                return f"data:image/jpeg;base64,{b64_img}"
+            else:
+                logger.error(f"NVIDIA Image Error: {resp.status_code} {resp.text}")
+                return None
+        except Exception as e:
+            logger.error(f"NVIDIA Image Exception: {e}")
+            return None
+
     def generate_image(self, prompt: str, width: int = 1080, height: int = 1920):
         """
-        Generates an image using Pollinations.ai (Free & Unlimited).
+        Generates an image using NVIDIA NIM (Primary) or Pollinations.ai (Fallback).
         """
+        # 1. Try NVIDIA NIM
+        result = self._generate_image_nvidia(prompt)
+        if result:
+            return result
+            
+        # 2. Try Pollinations (Fallback)
+        logger.warning("NVIDIA NIM image generation failed or skipped. Falling back to Pollinations...")
         import urllib.parse
         encoded_prompt = urllib.parse.quote(prompt)
         url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&nologo=true&enhance=true&seed={os.urandom(4).hex()}"
         
         logger.info(f"Generating AI image for: {prompt[:50]}...")
-        # We can just use the download_asset method since it's a direct URL
         return url
 
     def download_asset(self, url: str, output_path: str):
         """
-        Downloads the asset from URL.
+        Downloads the asset from URL or saves base64 data URI.
         """
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        if url.startswith("data:image/"):
+            import base64
+            header, encoded = url.split(",", 1)
+            data = base64.b64decode(encoded)
+            os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
+            with open(output_path, "wb") as f:
+                f.write(data)
+            logger.success(f"Saved base64 asset to: {output_path}")
+            return output_path
+
+        os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
         logger.info(f"Downloading asset from {url} to {output_path}")
         response = requests.get(url, stream=True)
         if response.status_code == 200:

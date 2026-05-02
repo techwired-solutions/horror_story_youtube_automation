@@ -10,6 +10,41 @@ genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 class ScriptGenerator:
     def __init__(self, model_name="gemini-3-flash-preview"):
         self.model = genai.GenerativeModel(model_name)
+        self.nvidia_api_key = os.getenv("NVIDIA_NIM_API_KEY")
+
+    def _generate_with_nvidia(self, prompt: str):
+        import requests
+        import json
+        if not self.nvidia_api_key:
+            return None
+            
+        logger.info("Generating script with NVIDIA NIM (Llama 3.1 70B)...")
+        url = "https://integrate.api.nvidia.com/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {self.nvidia_api_key}",
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+        }
+        payload = {
+            "model": "meta/llama-3.1-70b-instruct",
+            "messages": [
+                {"role": "system", "content": "You are a master horror storyteller and scriptwriter."},
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": 0.7,
+            "max_tokens": 4096,
+        }
+        try:
+            resp = requests.post(url, headers=headers, json=payload, timeout=90)
+            if resp.status_code == 200:
+                data = resp.json()
+                return data["choices"][0]["message"]["content"]
+            else:
+                logger.error(f"NVIDIA LLM Error: {resp.status_code} {resp.text}")
+                return None
+        except Exception as e:
+            logger.error(f"NVIDIA LLM Exception: {e}")
+            return None
 
     def generate_horror_script(self, topic: str):
         prompt = f"""
@@ -79,11 +114,19 @@ class ScriptGenerator:
         }}
         """
         logger.info(f"Generating horror script for topic: {topic}")
-        response = self.model.generate_content(prompt)
-
-        # Simple JSON extraction from response text
-        import json
-        text = response.text
+        
+        # 1. Try NVIDIA NIM (Primary)
+        text = self._generate_with_nvidia(prompt)
+        
+        # 2. Try Gemini (Fallback)
+        if not text:
+            logger.warning("NVIDIA NIM script generation failed or skipped. Falling back to Gemini...")
+            try:
+                response = self.model.generate_content(prompt)
+                text = response.text
+            except Exception as e:
+                logger.error(f"Gemini generation failed: {e}")
+                return None
         if "```json" in text:
             text = text.split("```json")[1].split("```")[0]
         elif "```" in text:
