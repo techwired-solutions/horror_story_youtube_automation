@@ -72,22 +72,18 @@ class AudioGenerator:
         logger.info(f"Compiled Performance Script:\n{performance_script[:200]}...")
 
         os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
-        
-        # Fallback Chain: NVIDIA -> Hume -> Bark -> Edge-TTS
+        # Fallback Chain: Hume -> Kokoro -> Edge-TTS
+        # (NVIDIA TTS models are currently returning 404 from the NIM API)
         raw_output_path = output_path.replace(".mp3", "_raw.mp3")
         
-        result = self._generate_with_nvidia(beats, raw_output_path)
-        
-        if not result:
-            logger.warning("NVIDIA generation failed or no key. Falling back to Hume...")
-            result = self._generate_with_hume(beats, raw_output_path)
+        result = self._generate_with_hume(beats, raw_output_path)
 
         if not result:
-            logger.warning("Hume generation failed. Falling back to Bark...")
-            result = self._generate_with_bark(beats, raw_output_path)
+            logger.warning("Hume generation failed. Falling back to Kokoro...")
+            result = self._generate_with_kokoro(beats, raw_output_path)
 
         if not result:
-            logger.warning("Bark generation failed. Falling back to Edge-TTS...")
+            logger.warning("Kokoro generation failed. Falling back to Edge-TTS...")
             result = self._generate_with_edge_tts(beats, raw_output_path)
 
         if not result:
@@ -202,47 +198,79 @@ class AudioGenerator:
             logger.error(f"NVIDIA generation failed: {e}")
             return None
 
-    def _generate_with_bark(self, beats: list, output_path: str):
+    def _generate_with_kokoro(self, beats: list, output_path: str):
         try:
-            from bark import generate_audio, preload_models, SAMPLE_RATE
-            import scipy.io.wavfile as wav
-            import subprocess
+            from kokoro import KPipeline
+            import soundfile as sf
+            from pydub import AudioSegment
+            import io
+            import numpy as np
             
-            logger.info("Calling Bark TTS...")
-            text = " ".join([b.get("text", "") for b in beats]).strip()
-            text = re.sub(r'\s+', ' ', text)
-            if not text:
-                return None
+            logger.info("Calling Kokoro TTS...")
+            
+            # Initialize pipeline (American English)
+            pipeline = KPipeline(lang_code='a')
+            voice = "am_onyx" # Deep male voice, great for horror
+            
+            master_audio = AudioSegment.empty()
+            master_words = []
+            
+            for beat in beats:
+                text = beat.get("text", "").strip()
+                if not text:
+                    continue
+                    
+                # Generate audio for the beat
+                generator = pipeline(text, voice=voice, speed=0.85, split_pattern=r'\n+')
                 
-            if self.hf_token:
-                os.environ["HF_TOKEN"] = self.hf_token
+                beat_audio_data = []
+                for _, _, audio in generator:
+                    beat_audio_data.append(audio)
                 
-            preload_models()
-            bark_text = f"[clears throat] {text}"
-            audio_array = generate_audio(bark_text, history_prompt="v2/en_speaker_2")
-            
-            wav_path = output_path.replace(".mp3", ".wav")
-            os.makedirs(os.path.dirname(wav_path) or '.', exist_ok=True)
-            wav.write(wav_path, rate=SAMPLE_RATE, data=audio_array)
-            
-            result = subprocess.run(
-                ["ffmpeg", "-y", "-i", wav_path, "-codec:a", "libmp3lame", "-qscale:a", "2", output_path],
-                capture_output=True, timeout=120
-            )
-            
-            if os.path.exists(wav_path):
-                os.remove(wav_path)
+                if not beat_audio_data:
+                    continue
+                    
+                combined_audio = np.concatenate(beat_audio_data)
                 
-            if result.returncode == 0 and os.path.exists(output_path):
-                return self._estimate_word_boundaries(text, output_path)
-            else:
-                logger.error("Bark ffmpeg conversion failed.")
-                return None
+                # Convert numpy array to pydub AudioSegment
+                temp_buffer = io.BytesIO()
+                sf.write(temp_buffer, combined_audio, 24000, format='wav')
+                temp_buffer.seek(0)
+                audio_segment = AudioSegment.from_file(temp_buffer, format="wav")
+                
+                current_duration = len(master_audio) / 1000.0
+                beat_duration = len(audio_segment) / 1000.0
+                
+                # Estimate word boundaries since Kokoro doesn't return them directly
+                words = text.split()
+                if words:
+                    time_per_word = beat_duration / len(words)
+                    for i, w in enumerate(words):
+                        master_words.append({
+                            "text": w,
+                            "start": current_duration + (i * time_per_word),
+                            "end": current_duration + ((i + 1) * time_per_word)
+                        })
+                        
+                master_audio += audio_segment
+                
+                # Add requested silence for dramatic pacing
+                pause_seconds = float(beat.get("pause_after", 0.5))
+                pause_ms = int(pause_seconds * 1000)
+                master_audio += AudioSegment.silent(duration=pause_ms)
+                
+            os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
+            master_audio.export(output_path, format="mp3")
+            
+            duration = len(master_audio) / 1000.0
+            logger.success(f"Kokoro generation success. {len(master_words)} words, duration: {duration:.1f}s")
+            return {"audio_path": output_path, "words": master_words, "duration": duration}
+            
         except ImportError:
-            logger.warning("Bark is not installed (`pip install bark`). Skipping.")
+            logger.warning("Kokoro is not installed (`pip install kokoro`). Skipping.")
             return None
         except Exception as e:
-            logger.error(f"Bark generation failed: {e}")
+            logger.error(f"Kokoro generation failed: {e}")
             return None
 
     # Minimum trailing silence (seconds) per delivery type for horror pacing
@@ -266,129 +294,187 @@ class AudioGenerator:
         try:
             from hume import HumeClient
             from hume.tts import PostedUtterance, PostedUtteranceVoiceWithId, PostedUtteranceVoiceWithName
-            client = HumeClient(api_key=self.hume_key)
-
-            voice_kwargs = {}
-            if HUME_HORROR_VOICE_ID:
-                voice_kwargs["voice"] = PostedUtteranceVoiceWithId(id=HUME_HORROR_VOICE_ID)
-            else:
-                voice_kwargs["voice"] = PostedUtteranceVoiceWithName(name="ITO", provider="HUME_AI")
-
-            # One utterance per beat with delivery-aware trailing silence
-            utterances = []
-            for beat in beats:
-                text = beat.get("text", "").strip()
-                if not text:
-                    continue
-                pause      = float(beat.get("pause_after", 0.3))
-                delivery   = beat.get("delivery", "calm")
-                min_pause  = self._DELIVERY_MIN_PAUSE.get(delivery, 0.3)
-                trailing   = max(pause, min_pause)
-                utterances.append(PostedUtterance(
-                    text=text,
-                    description=HUME_GLOBAL_ACTING,
-                    trailing_silence=trailing,
-                    **voice_kwargs
-                ))
-
-            if not utterances:
-                logger.error("No utterances built from beats.")
-                return None
-
-            logger.info(f"Calling Hume Octave TTS ({len(utterances)} utterances with pauses)...")
-            response = client.tts.synthesize_json(
-                utterances=utterances,
-                format={"type": "mp3"},
-                include_timestamp_types=["word"],
-                version="1",
-            )
-
-            if not response or not response.generations:
-                return None
-
-            generation = response.generations[0]
-            os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
-
             import base64
-            audio_bytes = base64.b64decode(generation.audio)
-            with open(output_path, 'wb') as f:
-                f.write(audio_bytes)
+            import soundfile as sf
+            
+            # Collect all available Hume API keys
+            hume_keys = [
+                os.getenv("HUME_API_KEY"),
+                os.getenv("HUME_API_KEY1"),
+                os.getenv("HUME_API_KEY2"),
+                os.getenv("HUME_API_KEY3")
+            ]
+            # Filter out empty or None keys
+            hume_keys = [k for k in hume_keys if k]
+            
+            if not hume_keys:
+                logger.error("No Hume API keys available.")
+                return None
 
-            # ── Snippet extraction: Hume v1 returns a FLAT list of SnippetAudioResult
-            # (not a list-of-lists). Iterating as nested was the caption bug.
-            words = []
-            if hasattr(generation, 'snippets') and generation.snippets:
-                for snippet in generation.snippets:
-                    if hasattr(snippet, 'timestamps') and snippet.timestamps:
-                        for ts in snippet.timestamps:
-                            if getattr(ts, 'type', '') == 'word':
-                                words.append({
-                                    "text":  ts.text,
-                                    "start": ts.time.begin / 1000.0,
-                                    "end":   ts.time.end   / 1000.0,
-                                })
-
-            if words:
-                duration = words[-1]['end']
-            else:
-                import soundfile as sf
-                duration = sf.info(output_path).duration
-
-            logger.success(f"Extracted {len(words)} word timestamps, duration: {duration:.1f}s")
-            return {"audio_path": output_path, "words": words, "duration": duration}
+            for i, current_key in enumerate(hume_keys):
+                logger.info(f"Trying Hume API key {i+1}/{len(hume_keys)}...")
+                try:
+                    client = HumeClient(api_key=current_key)
+        
+                    voice_kwargs = {}
+                    if HUME_HORROR_VOICE_ID:
+                        voice_kwargs["voice"] = PostedUtteranceVoiceWithId(id=HUME_HORROR_VOICE_ID)
+                    else:
+                        voice_kwargs["voice"] = PostedUtteranceVoiceWithName(name="ITO", provider="HUME_AI")
+        
+                    # One utterance per beat with delivery-aware trailing silence
+                    utterances = []
+                    for beat in beats:
+                        text = beat.get("text", "").strip()
+                        if not text:
+                            continue
+                        pause      = float(beat.get("pause_after", 0.3))
+                        delivery   = beat.get("delivery", "calm")
+                        min_pause  = self._DELIVERY_MIN_PAUSE.get(delivery, 0.3)
+                        trailing   = max(pause, min_pause)
+                        utterances.append(PostedUtterance(
+                            text=text,
+                            description=HUME_GLOBAL_ACTING,
+                            trailing_silence=trailing,
+                            **voice_kwargs
+                        ))
+        
+                    if not utterances:
+                        logger.error("No utterances built from beats.")
+                        return None
+        
+                    logger.info(f"Calling Hume Octave TTS ({len(utterances)} utterances with pauses)...")
+                    response = client.tts.synthesize_json(
+                        utterances=utterances,
+                        format={"type": "mp3"},
+                        include_timestamp_types=["word"],
+                        version="1",
+                    )
+        
+                    if not response or not response.generations:
+                        logger.warning(f"Empty response from Hume API key {i+1}. Trying next key...")
+                        continue
+        
+                    generation = response.generations[0]
+                    os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
+        
+                    audio_bytes = base64.b64decode(generation.audio)
+                    with open(output_path, 'wb') as f:
+                        f.write(audio_bytes)
+        
+                    # ── Snippet extraction: Hume v1 returns a FLAT list of SnippetAudioResult
+                    # (not a list-of-lists). Iterating as nested was the caption bug.
+                    words = []
+                    if hasattr(generation, 'snippets') and generation.snippets:
+                        for snippet in generation.snippets:
+                            if hasattr(snippet, 'timestamps') and snippet.timestamps:
+                                for ts in snippet.timestamps:
+                                    if getattr(ts, 'type', '') == 'word':
+                                        words.append({
+                                            "text":  ts.text,
+                                            "start": ts.time.begin / 1000.0,
+                                            "end":   ts.time.end   / 1000.0,
+                                        })
+        
+                    if words:
+                        duration = words[-1]['end']
+                    else:
+                        duration = sf.info(output_path).duration
+        
+                    logger.success(f"Extracted {len(words)} word timestamps, duration: {duration:.1f}s")
+                    return {"audio_path": output_path, "words": words, "duration": duration}
+                
+                except Exception as inner_e:
+                    logger.warning(f"Hume API key {i+1} failed: {inner_e}")
+                    # Loop continues to the next key if one is available
+            
+            logger.error("All Hume API keys failed or exhausted credits.")
+            return None
 
         except Exception as e:
-            logger.error(f"Hume Octave failed: {e}")
+            logger.error(f"Hume generation pipeline failed: {e}")
             return None
 
     def _generate_with_edge_tts(self, beats: list, output_path: str):
         try:
             import edge_tts
+            import io
+            from pydub import AudioSegment
             
-            # Combine text
-            text = " ".join([b.get("text", "") for b in beats]).strip()
-            text = re.sub(r'\s+', ' ', text)
-            if not text:
-                return None
-            
-            # Using GuyNeural as deep voice fallback
+            # Using ChristopherNeural for a deeper voice.
             voice = "en-US-ChristopherNeural"
-            communicate = edge_tts.Communicate(text, voice, rate="-10%", pitch="-15Hz")
             
-            word_boundaries = []
+            master_audio = AudioSegment.empty()
+            master_words = []
             
             async def run_edge():
-                with open(output_path, "wb") as f:
+                nonlocal master_audio, master_words
+                for beat in beats:
+                    text = beat.get("text", "").strip()
+                    if not text:
+                        continue
+                        
+                    # Slow rate slightly and drop pitch for horror effect
+                    communicate = edge_tts.Communicate(text, voice, rate="-10%", pitch="-15Hz")
+                    
+                    audio_data = b""
+                    word_boundaries = []
+                    
                     async for chunk in communicate.stream():
                         if chunk["type"] == "audio":
-                            f.write(chunk["data"])
+                            audio_data += chunk["data"]
                         elif chunk["type"] == "WordBoundary":
                             word_boundaries.append({
                                 "text": chunk["text"],
                                 "offset": chunk["offset"],
                                 "duration": chunk["duration"]
                             })
-            
+                            
+                    if not audio_data:
+                        continue
+                        
+                    # Load this beat's audio
+                    audio_segment = AudioSegment.from_file(io.BytesIO(audio_data), format="mp3")
+                    current_duration = len(master_audio) / 1000.0
+                    
+                    if word_boundaries:
+                        for wb in word_boundaries:
+                            start = (wb["offset"] / 10000000.0) + current_duration
+                            end = start + (wb["duration"] / 10000000.0)
+                            master_words.append({
+                                "text": wb["text"],
+                                "start": start,
+                                "end": end
+                            })
+                    else:
+                        # Fallback for voices that don't return WordBoundary
+                        beat_duration = len(audio_segment) / 1000.0
+                        words = text.split()
+                        if words:
+                            time_per_word = beat_duration / len(words)
+                            for i, w in enumerate(words):
+                                master_words.append({
+                                    "text": w,
+                                    "start": current_duration + (i * time_per_word),
+                                    "end": current_duration + ((i + 1) * time_per_word)
+                                })
+                                
+                    master_audio += audio_segment
+                    
+                    # Add requested silence for dramatic pacing
+                    pause_seconds = float(beat.get("pause_after", 0.5))
+                    pause_ms = int(pause_seconds * 1000)
+                    master_audio += AudioSegment.silent(duration=pause_ms)
+                    
             asyncio.run(run_edge())
             
-            words = []
-            for wb in word_boundaries:
-                start = wb["offset"] / 10000000.0
-                end = start + (wb["duration"] / 10000000.0)
-                words.append({
-                    "text": wb["text"],
-                    "start": start,
-                    "end": end
-                })
+            os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
+            master_audio.export(output_path, format="mp3")
             
-            if words:
-                duration = words[-1]["end"]
-            else:
-                import soundfile as sf
-                duration = sf.info(output_path).duration
+            duration = len(master_audio) / 1000.0
+            logger.success(f"Edge-TTS fallback success. {len(master_words)} words, duration: {duration:.1f}s")
+            return {"audio_path": output_path, "words": master_words, "duration": duration}
             
-            logger.success(f"Edge-TTS fallback success. {len(words)} words, duration: {duration:.1f}s")
-            return {"audio_path": output_path, "words": words, "duration": duration}
         except Exception as e:
             logger.error(f"Edge-TTS failed: {e}")
             return None
@@ -473,6 +559,11 @@ class AudioGenerator:
             sf.write(output_path, audio, sr)
 
     def generate_sfx(self, prompt: str, output_path: str = "assets/sfx.mp3", duration_seconds: float = None):
+        if not self.freesound_key:
+            logger.warning("FREESOUND_API_KEY is not set! Background music and SFX will be silent.")
+            self._create_silence(output_path, duration=duration_seconds or 3.0)
+            return output_path
+            
         try:
             query = self._build_freesound_query(prompt)
             url = "https://freesound.org/apiv2/search/text/"

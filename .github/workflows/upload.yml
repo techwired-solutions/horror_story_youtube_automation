@@ -22,6 +22,9 @@ jobs:
       FREESOUND_API_KEY:     ${{ secrets.FREESOUND_API_KEY }}
       HUGGINGFACE_TOKEN:     ${{ secrets.HUGGINGFACE_TOKEN }}
       HUME_API_KEY:          ${{ secrets.HUME_API_KEY }}
+      HUME_API_KEY1:         ${{ secrets.HUME_API_KEY1 }}
+      HUME_API_KEY2:         ${{ secrets.HUME_API_KEY2 }}
+      HUME_API_KEY3:         ${{ secrets.HUME_API_KEY3 }}
       HUME_VOICE_ID:         ${{ secrets.HUME_VOICE_ID }}
       MINIMAX_API_KEY:       ${{ secrets.MINIMAX_API_KEY }}
       MINIMAX_GROUP_ID:      ${{ secrets.MINIMAX_GROUP_ID }}

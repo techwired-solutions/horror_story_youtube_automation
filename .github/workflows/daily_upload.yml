@@ -52,6 +52,9 @@ jobs:
         ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
         PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
         HUME_API_KEY: ${{ secrets.HUME_API_KEY }}
+        HUME_API_KEY1: ${{ secrets.HUME_API_KEY1 }}
+        HUME_API_KEY2: ${{ secrets.HUME_API_KEY2 }}
+        HUME_API_KEY3: ${{ secrets.HUME_API_KEY3 }}
         HUME_VOICE_ID: ${{ secrets.HUME_VOICE_ID }}
         MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
         MINIMAX_GROUP_ID: ${{ secrets.MINIMAX_GROUP_ID }}
