@@ -72,7 +72,7 @@ export const Main: React.FC = () => {
     <div className="flex-1 bg-black">
       {/* 1. Background Music/Atmosphere */}
       {props.atmosphere_url && (
-        <Audio src={staticFile(props.atmosphere_url)} volume={0.015} />
+        <Audio src={staticFile(props.atmosphere_url)} volume={0.005} />
       )}
 
       {/* 2. Narration Audio */}
@@ -116,7 +116,7 @@ export const Main: React.FC = () => {
         const startFrame = Math.floor(priorDuration * fps * durationMultiplier);
         return (
           <Sequence key={`sfx-${index}`} from={startFrame}>
-            <Audio src={staticFile(beat.sfx_url)} volume={0.05} />
+            <Audio src={staticFile(beat.sfx_url)} volume={0.015} />
           </Sequence>
         );
       })}

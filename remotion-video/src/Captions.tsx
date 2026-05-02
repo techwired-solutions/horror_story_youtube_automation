@@ -1,5 +1,5 @@
 import React from 'react';
-import { interpolate, useCurrentFrame, spring } from 'remotion';
+import { useCurrentFrame, spring } from 'remotion';
 
 export interface Subtitle {
   text: string;
@@ -22,10 +22,23 @@ export const Captions: React.FC<{
   if (!subtitles || subtitles.length === 0) return null;
 
   // Find the currently active word
-  const activeIndex = subtitles.findIndex((word) => {
+  const activeIndex = subtitles.findIndex((word, index) => {
     const startFrame = word.start * fps;
-    const endFrame = word.end * fps;
-    return frame >= startFrame && frame <= endFrame;
+    let endFrame = word.end * fps;
+    
+    // Gap-based boundary detection: keep word visible until the next word
+    if (index < subtitles.length - 1) {
+      const nextStartFrame = subtitles[index + 1].start * fps;
+      // If the gap to the next word is less than 2 seconds, keep word on screen
+      if (nextStartFrame - endFrame < 2 * fps) {
+        endFrame = nextStartFrame;
+      }
+    } else {
+      // Keep last word on screen slightly longer
+      endFrame += 2 * fps;
+    }
+    
+    return frame >= startFrame && frame < endFrame;
   });
 
   if (activeIndex === -1) return null;
@@ -54,6 +67,7 @@ export const Captions: React.FC<{
         justifyContent: 'center',
         alignItems: 'center',
         pointerEvents: 'none',
+        zIndex: 100,
       }}
     >
       <div
