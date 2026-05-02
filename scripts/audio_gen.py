@@ -376,8 +376,10 @@ class AudioGenerator:
                     # ── Snippet extraction: Hume v1 returns a FLAT list of SnippetAudioResult
                     # (not a list-of-lists). Iterating as nested was the caption bug.
                     words = []
+                    current_offset = 0.0
                     if hasattr(generation, 'snippets') and generation.snippets:
-                        for snippet in generation.snippets:
+                        for idx, snippet in enumerate(generation.snippets):
+                            snippet_duration = 0.0
                             if hasattr(snippet, 'timestamps') and snippet.timestamps:
                                 for ts in snippet.timestamps:
                                     if getattr(ts, 'type', '') == 'word':
@@ -389,9 +391,14 @@ class AudioGenerator:
                                         
                                         words.append({
                                             "text":  ts.text,
-                                            "start": start_sec,
-                                            "end":   end_sec,
+                                            "start": current_offset + start_sec,
+                                            "end":   current_offset + end_sec,
                                         })
+                                        snippet_duration = max(snippet_duration, end_sec)
+                            
+                            # Add the trailing silence that we requested for this utterance
+                            trailing = utterances[idx].trailing_silence if idx < len(utterances) else 0.3
+                            current_offset += snippet_duration + trailing
         
                     if words:
                         duration = words[-1]['end']
