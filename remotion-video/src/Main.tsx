@@ -6,6 +6,7 @@ import {
   Series,
   useVideoConfig,
   getInputProps,
+  AbsoluteFill,
 } from 'remotion';
 import { AnimatedAsset } from './AnimatedAsset';
 import { Captions, Subtitle } from './Captions';
@@ -69,7 +70,7 @@ export const Main: React.FC = () => {
   const durationMultiplier = durationInFrames / (totalEstimatedDuration * fps);
 
   return (
-    <div className="flex-1 bg-black">
+    <AbsoluteFill className="bg-black">
       {/* 1. Background Music/Atmosphere */}
       {props.atmosphere_url && (
         <Audio src={staticFile(props.atmosphere_url)} volume={0.005} />
@@ -128,6 +129,6 @@ export const Main: React.FC = () => {
       {props.audio_url && (
         <WaveformOverlay src={staticFile(props.audio_url)} />
       )}
-    </div>
+    </AbsoluteFill>
   );
 };

@@ -57,15 +57,26 @@ class AudioGenerator:
         trailing_silence for dramatic pauses, overlays micro-breaths, and masters audio.
         Returns: {"audio_path": str, "words": [{text, start, end}], "duration": float}
         """
-        # Filter duplicate consecutive lines
+        # Filter duplicate lines (even non-consecutive) to avoid LLM hallucination loops
         filtered_beats = []
-        prev_text = ""
+        seen_texts = set()
         for b in beats:
             t = b.get("text", "").strip()
-            if t and t.lower() == prev_text.lower():
+            t_lower = t.lower()
+            if not t_lower:
                 continue
+                
+            # Clean punctuation for exact phrase matching
+            t_clean = re.sub(r'[^\w\s]', '', t_lower).strip()
+            
+            # If the phrase is more than 3 words and we've already seen it, skip it
+            if len(t_clean.split()) > 3 and t_clean in seen_texts:
+                logger.warning(f"Dropping repeated dialogue: {t}")
+                continue
+                
+            seen_texts.add(t_clean)
             filtered_beats.append(b)
-            prev_text = t
+            
         beats = filtered_beats
 
         performance_script = self._compile_performance_script(beats)
