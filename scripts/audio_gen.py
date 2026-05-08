@@ -170,41 +170,84 @@ class AudioGenerator:
             return None
 
         try:
+            from pydub import AudioSegment
+            import io
             logger.info("Calling NVIDIA NIM API for TTS...")
-            text = " ".join([b.get("text", "") for b in beats]).strip()
-            text = re.sub(r'\s+', ' ', text)
-            if not text:
-                return None
-                
+
             headers = {
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",
                 "Accept": "audio/mp3"
             }
             
-            models_to_try = [
-                "nvidia/nemotron-voicechat",
-                "nvidia/magpie-tts"
-            ]
+            master_audio = AudioSegment.empty()
+            master_words = []
             
-            for model_name in models_to_try:
-                payload = {
-                    "model": model_name,
-                    "input": text,
-                    "voice": "A male speaker with a low, deep, and slightly sinister voice delivering a horror story. He speaks slowly with dramatic pauses.",
-                }
+            models_to_try = ["nvidia/nemotron-voicechat", "nvidia/magpie-tts"]
+            
+            for beat in beats:
+                text = beat.get("text", "").strip()
+                text = re.sub(r'\s+', ' ', text)
+                if not text:
+                    continue
                 
-                logger.info(f"Trying NVIDIA TTS model: {model_name}")
-                resp = requests.post("https://integrate.api.nvidia.com/v1/audio/speech", headers=headers, json=payload, timeout=60)
-                if resp.status_code == 200:
-                    os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
-                    with open(output_path, 'wb') as f:
-                        f.write(resp.content)
-                    return self._estimate_word_boundaries(text, output_path)
+                voice_type = beat.get("voice", "male")
+                if voice_type == "female":
+                    voice_prompt = "A female speaker with a calm, clear, and professional voice."
                 else:
-                    logger.error(f"NVIDIA API Error {resp.status_code} with {model_name}: {resp.text}")
+                    voice_prompt = "A male speaker with a low, deep, and slightly sinister voice delivering a horror story. He speaks slowly with dramatic pauses."
+                
+                success = False
+                for model_name in models_to_try:
+                    payload = {
+                        "model": model_name,
+                        "input": text,
+                        "voice": voice_prompt,
+                    }
+                    
+                    logger.debug(f"NVIDIA TTS: {model_name} ({voice_type}) -> {text[:30]}...")
+                    resp = requests.post("https://integrate.api.nvidia.com/v1/audio/speech", headers=headers, json=payload, timeout=60)
+                    if resp.status_code == 200:
+                        audio_segment = AudioSegment.from_file(io.BytesIO(resp.content), format="mp3")
+                        
+                        # Add silence based on pause_after
+                        pause_seconds = float(beat.get("pause_after", 0.5))
+                        pause_ms = int(pause_seconds * 1000)
+                        
+                        current_duration = len(master_audio) / 1000.0
+                        beat_duration = len(audio_segment) / 1000.0
+                        
+                        # Estimate word boundaries
+                        words = text.split()
+                        if words:
+                            time_per_word = beat_duration / len(words)
+                            for i, w in enumerate(words):
+                                master_words.append({
+                                    "text": w,
+                                    "start": current_duration + (i * time_per_word),
+                                    "end": current_duration + ((i + 1) * time_per_word)
+                                })
+                        
+                        master_audio += audio_segment
+                        master_audio += AudioSegment.silent(duration=pause_ms)
+                        success = True
+                        break
+                    else:
+                        logger.error(f"NVIDIA API Error {resp.status_code} with {model_name}: {resp.text}")
+                
+                if not success:
+                    logger.error(f"Failed to generate beat with NVIDIA: {text}")
+                    return None
+
+            if len(master_audio) == 0:
+                return None
+                
+            os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
+            master_audio.export(output_path, format="mp3")
+            duration = len(master_audio) / 1000.0
+            logger.success(f"NVIDIA generation success. {len(master_words)} words, duration: {duration:.1f}s")
+            return {"audio_path": output_path, "words": master_words, "duration": duration}
             
-            return None
         except Exception as e:
             logger.error(f"NVIDIA generation failed: {e}")
             return None
@@ -221,7 +264,6 @@ class AudioGenerator:
             
             # Initialize pipeline (American English)
             pipeline = KPipeline(lang_code='a')
-            voice = "am_onyx" # Deep male voice, great for horror
             
             master_audio = AudioSegment.empty()
             master_words = []
@@ -230,7 +272,10 @@ class AudioGenerator:
                 text = beat.get("text", "").strip()
                 if not text:
                     continue
-                    
+                
+                voice_type = beat.get("voice", "male")
+                voice = "af_bella" if voice_type == "female" else "am_onyx"
+                
                 # Generate audio for the beat
                 generator = pipeline(text, voice=voice, speed=0.85, split_pattern=r'\n+')
                 
@@ -240,7 +285,7 @@ class AudioGenerator:
                 
                 if not beat_audio_data:
                     continue
-                    
+                
                 combined_audio = np.concatenate(beat_audio_data)
                 
                 # Convert numpy array to pydub AudioSegment
@@ -333,12 +378,6 @@ class AudioGenerator:
                 try:
                     client = HumeClient(api_key=current_key)
         
-                    voice_kwargs = {}
-                    if HUME_HORROR_VOICE_ID:
-                        voice_kwargs["voice"] = PostedUtteranceVoiceWithId(id=HUME_HORROR_VOICE_ID)
-                    else:
-                        voice_kwargs["voice"] = PostedUtteranceVoiceWithName(name="ITO", provider="HUME_AI")
-        
                     # One utterance per beat with delivery-aware trailing silence
                     utterances = []
                     for beat in beats:
@@ -350,6 +389,17 @@ class AudioGenerator:
                         text = text.strip()
                         if not text:
                             continue
+                            
+                        voice_type = beat.get("voice", "male")
+                        voice_kwargs = {}
+                        if voice_type == "female":
+                            voice_kwargs["voice"] = PostedUtteranceVoiceWithName(name="KORA", provider="HUME_AI")
+                        else:
+                            if HUME_HORROR_VOICE_ID:
+                                voice_kwargs["voice"] = PostedUtteranceVoiceWithId(id=HUME_HORROR_VOICE_ID)
+                            else:
+                                voice_kwargs["voice"] = PostedUtteranceVoiceWithName(name="ITO", provider="HUME_AI")
+                                
                         pause      = float(beat.get("pause_after", 0.3))
                         delivery   = beat.get("delivery", "calm")
                         min_pause  = self._DELIVERY_MIN_PAUSE.get(delivery, 0.3)
@@ -435,9 +485,6 @@ class AudioGenerator:
             import io
             from pydub import AudioSegment
             
-            # Using ChristopherNeural for a deeper voice.
-            voice = "en-US-ChristopherNeural"
-            
             master_audio = AudioSegment.empty()
             master_words = []
             
@@ -448,6 +495,9 @@ class AudioGenerator:
                     if not text:
                         continue
                         
+                    voice_type = beat.get("voice", "male")
+                    voice = "en-US-AriaNeural" if voice_type == "female" else "en-US-ChristopherNeural"
+                    
                     # Slow rate slightly and drop pitch for horror effect
                     communicate = edge_tts.Communicate(text, voice, rate="-10%", pitch="-15Hz")
                     
