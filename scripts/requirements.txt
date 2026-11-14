@@ -15,3 +15,5 @@ misaki[en]
 hume>=0.8.0
 pydub
 pedalboard
+
+Pillow>=10.0

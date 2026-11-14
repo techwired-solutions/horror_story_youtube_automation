@@ -4,7 +4,7 @@ import { Main } from './Main';
 import './index.css';
 
 export const RemotionRoot: React.FC = () => {
-  const inputProps = getInputProps() as any;
+  const inputProps = getInputProps() as {duration_in_frames?: number};
   const durationInFrames = inputProps.duration_in_frames || 1800; 
 
   return (

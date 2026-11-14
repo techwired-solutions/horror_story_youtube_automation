@@ -1,107 +1,107 @@
-import os
-import sys
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+"""Three explicit production paths; generation never implies publication."""
 import argparse
-from scripts.props_builder import PropsBuilder
-from loguru import logger
+import base64
+import json
+import os
+from pathlib import Path
+import subprocess
+
 
 def main():
-    parser = argparse.ArgumentParser(description="Horror Video Automation Orchestrator")
-    parser.add_argument("--topic", type=str, help="Topic for the horror story (optional, defaults to daily selection)")
-    parser.add_argument("--render", action="store_true", help="Whether to trigger remotion render")
-    parser.add_argument("--upload", action="store_true", help="Whether to upload to YouTube")
+    parser = argparse.ArgumentParser(description="Atmospheric horror production")
+    parser.add_argument("--workflow", choices=["long", "short", "social"], default="short")
+    parser.add_argument("--topic")
+    parser.add_argument("--minutes", type=int, default=10, choices=[5, *range(8, 21)])
+    parser.add_argument("--source-file", help="Reviewed factual source notes")
+    parser.add_argument("--source-url", help="Attribution URL, required with source-file")
+    parser.add_argument("--script-file", help="Reuse an edited story JSON")
+    parser.add_argument("--post-file", help="Publish reviewed social post.json without regeneration")
+    parser.add_argument("--render", action="store_true")
+    parser.add_argument("--upload", action="store_true")
+    parser.add_argument("--privacy", choices=["private", "unlisted", "public"], default="private")
+    parser.add_argument("--variant", choices=["text", "photo"], default="text")
+    parser.add_argument("--platforms", nargs="+", choices=["facebook", "instagram"], default=["facebook"])
+    parser.add_argument("--output-dir", default="runs/current")
     args = parser.parse_args()
-
-    # 0. Auth Restoration (For GitHub Actions)
-    if os.getenv("YOUTUBE_TOKEN_PICKLE_BASE64"):
-        import base64
-        logger.info("Restoring token.pickle from environment variable...")
-        token_data = base64.b64decode(os.getenv("YOUTUBE_TOKEN_PICKLE_BASE64"))
-        with open("token.pickle", "wb") as f:
-            f.write(token_data)
-    
-    if os.getenv("YOUTUBE_CLIENT_SECRET"):
-        logger.info("Restoring client_secret.json from environment variable...")
-        with open("client_secret.json", "w") as f:
-            f.write(os.getenv("YOUTUBE_CLIENT_SECRET"))
-
-    # 1. Topic Selection
-    topic = args.topic
-    if not topic:
-        from scripts.daily_topic_selector import DailyTopicSelector
-        selector = DailyTopicSelector()
-        topic = selector.get_daily_topic()
-
-    # 2. Build Script
-    logger.info(f"Starting automation for topic: {topic}")
-    builder = PropsBuilder()
-    from scripts.script_gen import ScriptGenerator
-    script_gen = ScriptGenerator()
-    script = script_gen.generate_horror_script(topic)
-    
-    if not script or "parts" not in script:
-        logger.error("Failed to generate script or invalid format. Aborting.")
+    if bool(args.source_file) != bool(args.source_url):
+        parser.error("Supply both --source-file and --source-url")
+    if args.post_file:
+        if args.workflow != "social" or not args.upload:
+            parser.error("--post-file requires --workflow social --upload")
+        from scripts.social import MetaPublisher
+        path = Path(args.post_file)
+        post = json.loads(path.read_text(encoding="utf-8"))
+        post["image"] = str(path.parent / "post.jpg")
+        MetaPublisher().publish(post, args.platforms, path.parent / "publication.json")
         return
-
-    # Generate Common Thumbnail
-    from scripts.asset_fetcher import AssetFetcher
-    fetcher = AssetFetcher()
-    thumbnail_prompt = f"Scary, cinematic, high-contrast horror thumbnail for: {topic}. Dark, eerie, highly detailed, sharp focus."
-    thumbnail_url = fetcher.generate_image(thumbnail_prompt, width=1280, height=720)
-    thumbnail_path = os.path.abspath("remotion-video/public/assets/images/thumbnail.png")
-    fetcher.download_asset(thumbnail_url, thumbnail_path)
-
-    # Process Each Part
-    for part in script["parts"]:
-        part_num = part["part_number"]
-        total_parts = len(script["parts"])
-        logger.info(f"Processing Part {part_num}/{total_parts}...")
-
-        # Build Props for this part
-        props = builder.build_props(part, script["title"], part_number=part_num)
-        if not props:
-            logger.error(f"Failed to build props for Part {part_num}. Skipping.")
-            continue
-
-        # 3. Render
-        output_file = os.path.abspath(f"remotion-video/out_part_{part_num}.mp4")
-        if args.render or args.upload:
-            logger.info(f"Triggering Remotion render for Part {part_num}...")
-            render_cmd = f"cd remotion-video && npx remotion render Shorts {output_file} --props public/props.json"
-            os.system(render_cmd)
-
-        # 4. Upload
+    from scripts.story_policy import validate_story
+    directory = Path(args.output_dir)
+    directory.mkdir(parents=True, exist_ok=True)
+    if args.script_file:
+        story = json.loads(Path(args.script_file).read_text(encoding="utf-8"))
+        validate_story(story, args.workflow, args.minutes)
+    else:
+        topic = args.topic
+        if not topic:
+            from scripts.daily_topic_selector import DailyTopicSelector
+            topic = DailyTopicSelector().get_daily_topic()
+        from scripts.script_gen import ScriptGenerator
+        source = Path(args.source_file).read_text(encoding="utf-8") if args.source_file else ""
+        story = ScriptGenerator().generate_horror_script(topic, args.workflow, args.minutes, source)
+        if not story:
+            raise RuntimeError("Story generation failed; nothing published")
+    story["story_kind"] = "dramatized_source" if args.source_file else "fiction"
+    story["disclosure"] = (f"Dramatized account based on supplied source notes. Paranormal claims are unverified. Source: {args.source_url}"
+                           if args.source_file else "An original fictional horror story.")
+    (directory / "story.json").write_text(json.dumps(story, indent=2), encoding="utf-8")
+    if args.workflow == "social":
+        from scripts.social import prepare_post, MetaPublisher
+        photo = None
+        if args.variant == "photo":
+            from scripts.asset_fetcher import AssetFetcher
+            photo = AssetFetcher().fetch_scene(story["parts"][0]["beats"][0].get("stock_query", "foggy forest"), directory / "stock", prefer_video=False)
+        post = prepare_post(story, directory, args.variant, photo)
         if args.upload:
-            from scripts.uploader import YouTubeUploader
-            logger.info(f"Starting YouTube upload for Part {part_num}...")
-            uploader = YouTubeUploader()
-            
-            # Build part-specific title and description
-            title = props["title"]
-            if total_parts > 1:
-                title = f"{script['title']} - Part {part_num} | Scary Horror Story #shorts"
-            else:
-                title = f"{script['title']} | Scary Horror Story #shorts #horror"
+            MetaPublisher().publish(post, args.platforms, directory / "publication.json")
+        return
+    from scripts.props_builder import PropsBuilder
+    builder = PropsBuilder()
+    prepared = []
+    # Prepare and validate every part before uploading any part.
+    for part in story["parts"]:
+        number = part["part_number"]
+        title = story["title"] + (f" — Part {number}" if len(story["parts"]) > 1 else "")
+        props_path = directory / f"props-{number}.json"
+        props = builder.build_props(part, title, number, str(props_path), args.workflow, args.minutes)
+        if not props:
+            raise RuntimeError("Media preparation failed")
+        video = (directory / f"part-{number}.mp4").resolve()
+        if args.render or args.upload:
+            subprocess.run(["npx.cmd" if os.name == "nt" else "npx", "remotion", "render",
+                            "LongForm" if args.workflow == "long" else "Shorts", str(video),
+                            "--props", str(props_path.resolve())], cwd="remotion-video", check=True)
+        prepared.append((title, props, video))
+    if args.upload:
+        if os.getenv("YOUTUBE_TOKEN_PICKLE_BASE64"):
+            Path("token.pickle").write_bytes(base64.b64decode(os.environ["YOUTUBE_TOKEN_PICKLE_BASE64"]))
+        if os.getenv("YOUTUBE_CLIENT_SECRET"):
+            Path("client_secret.json").write_text(os.environ["YOUTUBE_CLIENT_SECRET"])
+        from scripts.uploader import YouTubeUploader
+        uploader = YouTubeUploader()
+        receipt_path = directory / "publication.json"
+        receipts = json.loads(receipt_path.read_text()) if receipt_path.exists() else {}
+        for index, (title, props, video) in enumerate(prepared, 1):
+            if str(index) in receipts:
+                continue
+            credits = "\n".join(f"{a['creator']} / {a['provider']}: {a['page_url']}" for a in props["credits"])
+            description = story["disclosure"] + "\n\nStock visuals (illustrative):\n" + credits
+            video_id = uploader.upload_video(str(video), title + (" #shorts" if args.workflow == "short" else ""),
+                                              description[:5000], tags=["horror", "scary stories"], privacy_status=args.privacy)
+            if not video_id:
+                raise RuntimeError("YouTube upload failed")
+            receipts[str(index)] = video_id
+            receipt_path.write_text(json.dumps(receipts, indent=2))
 
-            description = f"{script['title']} - Part {part_num}\n\n"
-            if part_num < total_parts:
-                description += f"Stay tuned for Part {part_num + 1}! Subscribe and hit the bell.\n\n"
-            
-            description += "Prepare for a chilling journey into the unknown.\n\n"
-            description += "#horror #scarystories #scary #creepy #shorts #part" + str(part_num)
-            
-            tags = ["horror", "scary stories", "creepy", "ghost stories", "horror shorts", f"part {part_num}"]
-            
-            video_id = uploader.upload_video(
-                file_path=output_file,
-                title=title,
-                description=description,
-                tags=tags,
-                privacy_status="public"
-            )
-
-            if video_id:
-                uploader.set_thumbnail(video_id, thumbnail_path)
 
 if __name__ == "__main__":
     main()

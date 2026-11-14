@@ -1,0 +1,73 @@
+name: Long-form horror video
+on:
+  workflow_dispatch:
+    inputs:
+      topic:
+        description: Story topic (blank selects automatically)
+        type: string
+      publish:
+        description: Upload to YouTube (private by default)
+        type: boolean
+        default: false
+      privacy:
+        description: YouTube visibility
+        type: choice
+        options: [private, unlisted, public]
+        default: private
+      minutes:
+        description: Target minutes (5 or 8 through 20)
+        type: choice
+        options: ['5', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20']
+        default: '10' 
+permissions:
+  contents: read
+concurrency:
+  group: horror-long-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  produce:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      NVIDIA_NIM_API_KEY: ${{ secrets.NVIDIA_NIM_API_KEY }}
+      PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+      PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
+      HUME_API_KEY: ${{ secrets.HUME_API_KEY }}
+      HUME_VOICE_ID: ${{ secrets.HUME_VOICE_ID }}
+      FREESOUND_API_KEY: ${{ secrets.FREESOUND_API_KEY }}
+      YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+      YOUTUBE_TOKEN_PICKLE_BASE64: ${{ secrets.YOUTUBE_TOKEN_PICKLE_BASE64 }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - run: pip install -r scripts/requirements.txt
+      - run: npm install
+        working-directory: remotion-video
+      - run: npx remotion browser install
+        working-directory: remotion-video
+      - name: Generate, render and optionally publish
+        env:
+          TOPIC: ${{ inputs.topic }}
+          PUBLISH: ${{ inputs.publish }}
+          PRIVACY: ${{ inputs.privacy }}
+          MINUTES: ${{ inputs.minutes || '10' }}
+        shell: bash
+        run: |
+          args=(--workflow long --topic "$TOPIC" --render --privacy "$PRIVACY" --minutes "$MINUTES")
+          if [[ "$PUBLISH" == "true" ]]; then args+=(--upload); fi
+          python -m scripts.orchestrator "${args[@]}"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: long-output
+          path: |
+            runs/current/
+            remotion-video/public/assets/
+          retention-days: 7

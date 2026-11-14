@@ -57,27 +57,8 @@ class AudioGenerator:
         trailing_silence for dramatic pauses, overlays micro-breaths, and masters audio.
         Returns: {"audio_path": str, "words": [{text, start, end}], "duration": float}
         """
-        # Filter duplicate lines (even non-consecutive) to avoid LLM hallucination loops
-        filtered_beats = []
-        seen_texts = set()
-        for b in beats:
-            t = b.get("text", "").strip()
-            t_lower = t.lower()
-            if not t_lower:
-                continue
-                
-            # Clean punctuation for exact phrase matching
-            t_clean = re.sub(r'[^\w\s]', '', t_lower).strip()
-            
-            # If the phrase is more than 3 words and we've already seen it, skip it
-            if len(t_clean.split()) > 3 and t_clean in seen_texts:
-                logger.warning(f"Dropping repeated dialogue: {t}")
-                continue
-                
-            seen_texts.add(t_clean)
-            filtered_beats.append(b)
-            
-        beats = filtered_beats
+        # Intentional recurring phrases are part of the story, not duplicates.
+        beats = [dict(b, voice="male") for b in beats if b.get("text", "").strip()]
 
         performance_script = self._compile_performance_script(beats)
         logger.info(f"Compiled Performance Script:\n{performance_script[:200]}...")
@@ -103,11 +84,12 @@ class AudioGenerator:
 
         # 2. Add Micro-Breaths
         with_breaths_path = output_path.replace(".mp3", "_with_breaths.wav")
-        self._overlay_micro_breaths(raw_output_path, beats, result["words"], with_breaths_path)
+        AudioSegment.from_file(raw_output_path).export(with_breaths_path, format="wav")
 
         # 3. Master Audio
         self._master_audio(with_breaths_path, output_path)
 
+        result["duration"] = len(AudioSegment.from_file(output_path)) / 1000.0
         result["audio_path"] = output_path
         return result
 
@@ -284,7 +266,7 @@ class AudioGenerator:
                     beat_audio_data.append(audio)
                 
                 if not beat_audio_data:
-                    continue
+                    raise RuntimeError("Kokoro returned empty audio for a narration beat")
                 
                 combined_audio = np.concatenate(beat_audio_data)
                 
@@ -499,7 +481,7 @@ class AudioGenerator:
                     voice = "en-US-AriaNeural" if voice_type == "female" else "en-US-ChristopherNeural"
                     
                     # Slow rate slightly and drop pitch for horror effect
-                    communicate = edge_tts.Communicate(text, voice, rate="-10%", pitch="-15Hz")
+                    communicate = edge_tts.Communicate(text, voice, rate="-18%", pitch="-8Hz")
                     
                     audio_data = b""
                     word_boundaries = []
@@ -515,7 +497,7 @@ class AudioGenerator:
                             })
                             
                     if not audio_data:
-                        continue
+                        raise RuntimeError("Edge returned empty audio for a narration beat")
                         
                     # Load this beat's audio
                     audio_segment = AudioSegment.from_file(io.BytesIO(audio_data), format="mp3")
@@ -656,6 +638,7 @@ class AudioGenerator:
                 "token": self.freesound_key,
                 "fields": "id,name,previews,duration",
                 "sort": "rating_desc",
+                "filter": 'license:"Creative Commons 0"',
                 "page_size": 5,
             }
 

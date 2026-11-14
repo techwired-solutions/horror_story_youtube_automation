@@ -28,3 +28,7 @@ logs/
 # OS
 .DS_Store
 Thumbs.db
+
+# Generated production runs
+runs/
+remotion-video/out_part_*.mp4

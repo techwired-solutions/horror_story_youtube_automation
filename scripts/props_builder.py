@@ -14,7 +14,7 @@ class PropsBuilder:
         self.asset_fetcher = AssetFetcher()
 
     def build_props(self, part_data, title, part_number=1,
-                    output_path="remotion-video/public/props.json"):
+                    output_path="remotion-video/public/props.json", mode="short", minutes=10):
         """
         Builds Remotion props for a specific story part.
         Handles TTS narration, SFX, background music, and image assets.
@@ -38,6 +38,8 @@ class PropsBuilder:
             if re.sub(r'[^\w]', '', w.get('text', '')).strip()
         ]
         total_duration_seconds = audio_result["duration"]
+        from scripts.story_policy import check_render_duration
+        check_render_duration(total_duration_seconds, mode, minutes)
 
         # ── 2. Generate Background Music ─────────────────────────────────────
         music_mood = part_data.get(
@@ -58,43 +60,49 @@ class PropsBuilder:
         beats_with_assets = []
         current_image_url = None
         
-        for i, beat in enumerate(beats):
-            # 1 Image per 3 beats
-            if i % 3 == 0:
-                batch_prompts = [b.get("image_prompt", "") for b in beats[i:i+3]]
-                combined_prompt = ", ".join(filter(None, batch_prompts))
-                if not combined_prompt:
-                    combined_prompt = f"cinematic horror scene for {title}, dark, creepy"
-                    
-                image_url = self.asset_fetcher.generate_image(combined_prompt)
-                image_path = f"assets/images/part_{part_number}_beat_{i}.png"
-                local_image_path = os.path.join("remotion-video/public", image_path)
-                self.asset_fetcher.download_asset(image_url, local_image_path)
-                current_image_url = image_path
-                
+        credits = []
+        held_seconds = 999
+        current_kind = "photo"
+        video_frames = None
+        for i, original in enumerate(beats):
+            beat = dict(original)
+            # Hold scenery for at least 18 seconds; do not cut on every sentence.
+            if held_seconds >= 18:
+                asset = self.asset_fetcher.fetch_scene(
+                    beat.get("stock_query") or "dark forest fog",
+                    f"remotion-video/public/assets/images/part_{part_number}_scene_{i}",
+                    orientation="landscape" if mode == "long" else "portrait",
+                )
+                current_image_url = os.path.relpath(asset["local_path"], "remotion-video/public").replace(os.sep, "/")
+                current_kind = asset["kind"]
+                if current_kind == "video":
+                    import subprocess
+                    probe = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", asset["local_path"]], check=True, capture_output=True, text=True)
+                    video_frames = max(1, int(float(probe.stdout.strip()) * 30))
+                else:
+                    video_frames = None
+                credits.append(asset)
+                held_seconds = 0
             beat["image_url"] = current_image_url
-
-            # SFX (only if explicitly requested in beat)
-            sfx_prompt = beat.get("sfx_prompt")
-            if sfx_prompt and str(sfx_prompt).strip().lower() not in ["none", ""]:
-                sfx_path = f"assets/audio/part_{part_number}_sfx_{i}.mp3"
-                local_sfx_path = os.path.join("remotion-video/public", sfx_path)
-                self.audio_gen.generate_sfx(sfx_prompt, output_path=local_sfx_path)
-                beat["sfx_url"] = sfx_path
-
+            beat["media_type"] = current_kind
+            beat["video_frames"] = video_frames
+            beat["animation_type"] = "zoom"
+            beat.pop("sfx_url", None)
+            held_seconds += beat.get("duration_estimate", 8)
             beats_with_assets.append(beat)
 
         # ── 4. Build Final Props JSON ─────────────────────────────────────────
         duration_in_frames = int(total_duration_seconds * 30) + 30  # 1s buffer
 
         final_props = {
-            "title": title if part_number == 1 else f"{title} - Part {part_number}",
+            "title": title,
             "beats": beats_with_assets,
             "subtitles": words,
             "audio_url": audio_filename,
             "atmosphere_url": atmosphere_filename,
             "duration_in_frames": duration_in_frames,
             "fps": 30,
+            "credits": credits,
         }
 
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
