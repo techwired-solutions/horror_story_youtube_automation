@@ -1,0 +1,93 @@
+{
+  "title": "The Rearview Echo",
+  "story_kind": "fiction",
+  "parts": [
+    {
+      "part_number": 1,
+      "music_mood": "low dark drone",
+      "beats": [
+        {
+          "text": "[Fiction] Elias adjusted his cap, the damp fog of November 14, 2026, pressing against the windshield like a heavy, grey blanket.",
+          "voice": "male",
+          "delivery": "calm",
+          "pause_after": 0.8,
+          "image_prompt": "monochrome cinematic shot of a bus driver through a foggy windshield at night",
+          "stock_query": "foggy night bus windshield",
+          "animation_type": "zoom",
+          "duration_estimate": 11.852631578947369
+        },
+        {
+          "text": "In the back row, a man in a salt-stained trench coat sat motionless, his reflection a static, faceless blur in the mirror.",
+          "voice": "male",
+          "delivery": "unease",
+          "pause_after": 0.8,
+          "image_prompt": "monochrome blurry rearview mirror reflection of a man in a dark coat on a bus",
+          "stock_query": "dark bus interior night",
+          "animation_type": "zoom",
+          "duration_estimate": 12.378947368421054
+        },
+        {
+          "text": "Almost home now, Elias murmured to himself, his voice barely a ripple in the quiet, sterile air of the idling bus.",
+          "voice": "male",
+          "delivery": "dread",
+          "pause_after": 0.5,
+          "image_prompt": "monochrome close up of a bus driver's mouth moving slightly",
+          "stock_query": "man face shadow mystery",
+          "animation_type": "zoom",
+          "duration_estimate": 11.552631578947368
+        },
+        {
+          "text": "He reached the final depot and pulled the air brake, but the passenger remained as still as a carved, granite headstone.",
+          "voice": "male",
+          "delivery": "dread",
+          "pause_after": 1.0,
+          "image_prompt": "monochrome empty bus depot at night with heavy fog",
+          "stock_query": "empty bus station night fog",
+          "animation_type": "zoom",
+          "duration_estimate": 12.052631578947368
+        },
+        {
+          "text": "Elias walked down the narrow, dimly lit aisle, the scent of old rain and copper filling his lungs with every step.",
+          "voice": "male",
+          "delivery": "dread",
+          "pause_after": 0.8,
+          "image_prompt": "monochrome perspective looking down a bus aisle toward the back seats",
+          "stock_query": "inside of a bus at night",
+          "animation_type": "zoom",
+          "duration_estimate": 11.852631578947369
+        },
+        {
+          "text": "Almost home now, he whispered, placing a trembling hand on the stranger’s shoulder, waiting for the inevitable, slow turn.",
+          "voice": "male",
+          "delivery": "whisper",
+          "pause_after": 1.5,
+          "image_prompt": "monochrome close up of a hand touching a dark coat shoulder",
+          "stock_query": "hand on shoulder mystery",
+          "animation_type": "zoom",
+          "duration_estimate": 11.5
+        },
+        {
+          "text": "The man turned, revealing Elias’s own younger face, eyes wide with the raw grief of the night his daughter died.",
+          "voice": "male",
+          "delivery": "reveal",
+          "pause_after": 1.0,
+          "image_prompt": "monochrome haunting face of a young man looking up in shock",
+          "stock_query": "haunted man face",
+          "animation_type": "zoom",
+          "duration_estimate": 11.526315789473685
+        },
+        {
+          "text": "Elias didn't scream; he simply sat in the seat beside his former self and waited for the next route to begin.",
+          "voice": "male",
+          "delivery": "ending",
+          "pause_after": 2.0,
+          "image_prompt": "monochrome wide shot of two identical figures sitting together on a dark bus",
+          "stock_query": "dark bus seats empty",
+          "animation_type": "zoom",
+          "duration_estimate": 13.052631578947368
+        }
+      ]
+    }
+  ],
+  "disclosure": "An original fictional horror story. Visuals are illustrative."
+}
