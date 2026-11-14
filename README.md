@@ -1,6 +1,6 @@
 # Atmospheric horror automation
 
-Three manually dispatched GitHub Actions workflows replace the two duplicate daily upload schedules:
+Three GitHub Actions workflows replace the two duplicate daily upload schedules. Social posting is automatic; video workflows retain their manual controls:
 
 | Workflow | Output | Length / format |
 | --- | --- | --- |
@@ -57,23 +57,69 @@ Pexels then Pixabay supply stock videos and photos. Video searches fall back to 
 
 Provider references: [Pexels API](https://www.pexels.com/api/documentation/), [Pexels license](https://www.pexels.com/license/), [Pixabay API](https://pixabay.com/api/docs/), [Pixabay license](https://pixabay.com/service/license-summary/), [YouTube three-minute Shorts](https://support.google.com/youtube/answer/15424877).
 
-## Social publishing
+## Automatic Facebook and Instagram publishing
 
-Generate and review `runs/current/post.jpg`, `caption.txt` and `post.json`. `text` creates a text card with an opening excerpt; the complete micro-story is in the caption. Facebook publishes that variant as native text. `photo` uses a darkened stock photo with title/opening text and a caption. Instagram always uses the JPEG plus caption, including the text-card variant. Captions over 2,200 characters or overflowing cards fail for revision.
+The social workflow runs every day at **20:02 Asia/Kathmandu (14:17 UTC)**.
+GitHub may delay scheduled jobs. Optional manual runs have no input fields and
+use the same daily state. A completed date is skipped, so clicking Run workflow
+again does not intentionally create another pair of posts.
 
-For Facebook Login integration, configure a Page access token, Page ID, connected Instagram professional account ID and a supported Graph API version. Grant Page publishing permissions (`pages_manage_posts`, appropriate Page access/engagement permissions) and `instagram_basic` / `instagram_content_publish` for Instagram. App review/access requirements depend on which accounts you manage. Follow [Meta Page publishing](https://developers.facebook.com/docs/graph-api/reference/page/feed/) and [Instagram content publishing](https://developers.facebook.com/docs/instagram-platform/instagram-api-with-facebook-login/content-publishing/).
+Each run creates an original fictional micro-story, automatically searches
+Pexels and Pixabay for a photo, builds a dark 1080 x 1350 JPEG with a restrained
+opening excerpt, and puts the full story in the caption. If stock is unavailable,
+it uses a generated text card. Facebook alternates native text-only posts and
+photo-with-text posts on successive dates. Instagram always gets the JPEG plus
+caption; Instagram has no native text-only feed post.
 
-Facebook photo uploads use the local file. Instagram fetches media from a public HTTPS URL: host the reviewed `post.jpg` yourself and set `INSTAGRAM_IMAGE_URL`. An authenticated Actions artifact URL or local file path will not work. Hosting is intentionally not provisioned by this repository.
+There is no prepared-run ID, image URL, platform selection, topic field, manual
+approval step or separate image-hosting account. The default destinations are
+both Facebook and Instagram. Existing `META_USER_TOKEN` and `FACEBOOK_ID` secrets
+are supported. `FACEBOOK_ID` is the Page ID. A Page token is obtained from the
+user token and the linked Instagram Business/Creator account is discovered
+automatically. A supplied `META_ACCESS_TOKEN` Page token takes precedence.
+
+The same Meta app/token needs `pages_show_list`, `pages_read_engagement`,
+`pages_manage_posts`, `instagram_basic` and `instagram_content_publish`, plus the
+appropriate Page access. Connect your Instagram professional account to that
+Page. App review/access requirements depend on which accounts you manage.
+`INSTAGRAM_ACCOUNT_ID` is an optional secret/variable override.
+`META_GRAPH_API_VERSION` is optional and defaults to supported version `v24.0`.
+
+At least one script-provider key (`GEMINI_API_KEY` or `NVIDIA_NIM_API_KEY`) is
+required. For stock imagery add `PEXELS_API_KEY` and/or `PIXABAY_API_KEY`. These
+are free stock APIs with quotas; script services have their own quotas/pricing.
+No paid image generation is used and arbitrary Google Images results are not
+used because search results alone do not establish reuse rights.
+
+### Automatic image hosting and retries
+
+The workflow's built-in `GITHUB_TOKEN` writes only generated JPEGs, story/post
+JSON and publication receipts to a separate `automation/social-media` branch.
+The repository must be public. Instagram fetches the exact JPEG from an
+immutable public GitHub raw URL, which the job verifies before publishing.
+No additional hosting secret, Pages configuration, or manual upload is needed.
+The social workflow needs Actions `contents: write`; organization/repository
+policy must allow this. Credentials are never included in media or receipts.
+Generated stories, images and post IDs on that branch are publicly visible.
+
+Daily state lives under `social/YYYY-MM-DD/`, using the Kathmandu date. Reruns
+reuse the saved story, image and successful publication receipts. Each confirmed
+Facebook post and Instagram container/publication ID is persisted immediately.
+An interrupted job can resume the pending destination without intentionally
+republishing the successful one. Network failures after a platform accepts a
+request but before its response is saved remain ambiguous: check the platform
+before retrying such a failure. An expired Instagram container requires manual
+reconciliation rather than blindly creating another post.
+
+For manual local generation without publication, the original CLI remains:
 
 ```sh
-python -m scripts.orchestrator --workflow social --post-file runs/current/post.json --upload --platforms facebook
-# After hosting the reviewed image and setting INSTAGRAM_IMAGE_URL:
-python -m scripts.orchestrator --workflow social --post-file runs/current/post.json --upload --platforms instagram
+python -m scripts.orchestrator --workflow social --variant photo --topic "The empty station"
 ```
 
-In GitHub Actions, first run the social workflow with `prepared_run_id` blank and download the `social-output` artifact for review. To publish that exact artifact, rerun with its generation run ID and the desired destinations. For Instagram, also supply the hosted image URL. Publication receipts are included in the resulting artifact. Use the latest receipt-bearing run ID for retries after partial success; rerunning the original generation artifact can create duplicate posts. Do not rerun an uncertain network failure until checking the platform.
-
-Video workflows expose an explicit publish switch and private/unlisted/public visibility. They generate a new story on each run; reruns can create new uploads. No schedule is enabled. No external content is published simply by installing this code.
+The low-level manual publisher accepts a saved post and a hosted image URL;
+the scheduled workflow handles both automatically. No local desktop process is
+needed for daily social publishing. Long-form and Shorts workflows are unchanged.
 
 ## Validation
 
@@ -86,23 +132,6 @@ npm run build
 ```
 
 Offline tests cover duration boundaries, part limits, stock fallback, card generation and publication preflight/receipts. Live provider generation and real uploads require your credentials and a manual end-to-end check.
-
-## Existing GitHub secrets: META_USER_TOKEN and FACEBOOK_ID
-
-The social workflow accepts these exact secret names. `FACEBOOK_ID` must be your
-**Page ID**, not your personal Facebook user ID. At publication time the user
-token is used to request a Page access token; neither token is printed or saved
-in artifacts. The connected Instagram professional account ID is discovered
-from the Page automatically. You can override it with `INSTAGRAM_ACCOUNT_ID`
-as a secret or repository variable. An existing `META_ACCESS_TOKEN` Page token
-still takes precedence, so remove a stale one before switching to a user token.
-
-The user token needs `pages_show_list`, `pages_read_engagement`,
-`pages_manage_posts` for Facebook posting and `instagram_basic`,
-`instagram_content_publish` for Instagram. Request permissions through the same
-Meta app used for the token. Keep `META_GRAPH_API_VERSION` as a repository
-variable. Instagram additionally needs the exact reviewed JPEG hosted at the
-public HTTPS image URL supplied to the workflow.
 
 ### Renew YouTube authorization
 

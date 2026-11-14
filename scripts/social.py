@@ -30,9 +30,21 @@ def prepare_post(story, directory, variant="text", photo=None):
             pass
     font = font or ImageFont.load_default()
     card_text = story["title"] + "\n\n" + story["parts"][0]["beats"][0]["text"] + "\n\nRead the story in the caption."
-    lines = "\n".join(textwrap.fill(line, 31) for line in card_text.split("\n"))
-    if draw.multiline_textbbox((0, 0), lines, font=font, spacing=18)[3] > 1100:
-        raise ValueError("Text card overflows; shorten the opening beat")
+    lines = []
+    for paragraph in card_text.split("\n"):
+        line = ""
+        for word in paragraph.split():
+            candidate = (line + " " + word).strip()
+            if line and draw.textlength(candidate, font=font) > 920:
+                lines.append(line)
+                line = word
+            else:
+                line = candidate
+        lines.append(line)
+    lines = "\n".join(lines)
+    box = draw.multiline_textbbox((0, 0), lines, font=font, spacing=18)
+    if box[2] > 920 or box[3] > 1100:
+        raise ValueError("Text card overflows; shorten the title/opening beat")
     draw.multiline_text((80, 120), lines, font=font, fill="#f0e9df", spacing=18)
     image.save(directory / "post.jpg", quality=95)
     post = {"caption": caption, "variant": variant, "image": str(directory / "post.jpg")}
@@ -72,22 +84,31 @@ class MetaPublisher:
             if not page.get("access_token"):
                 raise ValueError("Cannot obtain Page token; check Page access and pages_show_list/pages_read_engagement permissions")
             self.token = page["access_token"]
-            self.instagram_id = self.instagram_id or page.get("instagram_business_account", {}).get("id")
+            self.instagram_id = self.instagram_id or (page.get("instagram_business_account") or {}).get("id")
         elif "instagram" in platforms and not self.instagram_id:
             page = self.request("GET", self.page_id, params={"fields": "instagram_business_account"})
-            self.instagram_id = page.get("instagram_business_account", {}).get("id")
+            self.instagram_id = (page.get("instagram_business_account") or {}).get("id")
         if "instagram" in platforms and not self.instagram_id:
             raise ValueError("Connect an Instagram Business/Creator account to this Page, or set INSTAGRAM_ACCOUNT_ID")
 
-    def publish(self, post, platforms, receipt_path):
+    def publish(self, post, platforms, receipt_path, on_receipt=None, accounts_resolved=False):
         import time
         receipt_path = Path(receipt_path)
         receipt = json.loads(receipt_path.read_text()) if receipt_path.exists() else {}
+        def save_receipt():
+            receipt_path.write_text(json.dumps(receipt, indent=2), encoding="utf-8")
+            if on_receipt:
+                on_receipt(receipt)
+
+        platforms = [platform for platform in platforms if platform not in receipt]
+        if not platforms:
+            return receipt
         # Validate everything before the first external write.
-        image_url = os.getenv("INSTAGRAM_IMAGE_URL")
+        image_url = post.get("image_url") or os.getenv("INSTAGRAM_IMAGE_URL")
         if "instagram" in platforms and (not image_url or not image_url.startswith("https://")):
             raise ValueError("Instagram needs INSTAGRAM_IMAGE_URL: a public HTTPS URL serving this exact post.jpg")
-        self.resolve_accounts(platforms)
+        if not accounts_resolved:
+            self.resolve_accounts(platforms)
         for platform in platforms:
             if platform in receipt:
                 continue
@@ -104,7 +125,7 @@ class MetaPublisher:
                 if container_key not in receipt:
                     container = self.request("POST", f"{account}/media", data={"image_url": image_url, "caption": post["caption"]})
                     receipt[container_key] = container["id"]
-                    receipt_path.write_text(json.dumps(receipt, indent=2))
+                    save_receipt()
                 container_id = receipt[container_key]
                 for _ in range(24):
                     status = self.request("GET", container_id, params={"fields": "status_code"}).get("status_code")
@@ -117,5 +138,5 @@ class MetaPublisher:
                     raise RuntimeError("Instagram container not ready; receipt saved")
                 result = self.request("POST", f"{account}/media_publish", data={"creation_id": container_id})
             receipt[platform] = result
-            receipt_path.write_text(json.dumps(receipt, indent=2))
+            save_receipt()
         return receipt
