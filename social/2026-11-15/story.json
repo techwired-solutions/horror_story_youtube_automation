@@ -1,0 +1,63 @@
+{
+  "title": "The Postmark From Tomorrow",
+  "story_kind": "fiction",
+  "parts": [
+    {
+      "part_number": 1,
+      "music_mood": "quiet drone",
+      "beats": [
+        {
+          "text": "Elias found the first letter on November 15th, 2026, though the postmark was dated a week ahead and he felt the air is heavy.",
+          "voice": "male",
+          "delivery": "calm",
+          "pause_after": 0.8,
+          "image_prompt": "monochrome close up of a vintage envelope on a dark wooden floor, slow zoom, cinematic lighting",
+          "stock_query": "old envelope on dark floor",
+          "animation_type": "zoom",
+          "duration_estimate": 13.431578947368422
+        },
+        {
+          "text": "It was a noise complaint from a neighbor who had been dead for years, describing screams Elias hadn't even uttered yet.",
+          "voice": "male",
+          "delivery": "unease",
+          "pause_after": 0.8,
+          "image_prompt": "monochrome shot of a dimly lit apartment hallway with deep shadows, slow zoom, fog drifting",
+          "stock_query": "dark apartment hallway",
+          "animation_type": "zoom",
+          "duration_estimate": 11.852631578947369
+        },
+        {
+          "text": "The air is heavy, he whispered, bolting his door while the monochrome fog swallowed the streetlights outside his lonely window.",
+          "voice": "male",
+          "delivery": "dread",
+          "pause_after": 1.0,
+          "image_prompt": "monochrome close up of a hand slowly locking a door bolt, atmospheric smoke, slow zoom",
+          "stock_query": "hand locking door bolt",
+          "animation_type": "zoom",
+          "duration_estimate": 11.526315789473685
+        },
+        {
+          "text": "On the 22nd, a final letter arrived, a simple thank-you note for finally vacating the world of the living.",
+          "voice": "male",
+          "delivery": "whisper",
+          "pause_after": 1.8,
+          "image_prompt": "monochrome shot of an empty mailbox inside a dark building, heavy shadows, slow zoom",
+          "stock_query": "empty dark mailbox",
+          "animation_type": "zoom",
+          "duration_estimate": 11.8
+        },
+        {
+          "text": "He looked at the date, then at his own transparent hands, realizing he wasn't receiving mail from the future, but from the life he had already lost. This story is a work of fiction.",
+          "voice": "male",
+          "delivery": "reveal",
+          "pause_after": 2.0,
+          "image_prompt": "monochrome shot of a translucent hand reaching into a beam of moonlight, slow zoom, heavy grain",
+          "stock_query": "translucent hand moonlight",
+          "animation_type": "zoom",
+          "duration_estimate": 19.894736842105264
+        }
+      ]
+    }
+  ],
+  "disclosure": "An original fictional horror story. Visuals are illustrative."
+}
