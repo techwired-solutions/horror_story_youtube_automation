@@ -63,7 +63,7 @@ class AutomationTests(unittest.TestCase):
             self.assertIn("facebook", json.loads(Path(args[2]).read_text()))
             self.assertEqual(args[0]["caption"], "Original caption")
 
-    def test_instagram_access_failure_does_not_block_facebook_photo(self):
+    def test_unlinked_instagram_is_deferred_without_blocking_facebook_photo(self):
         store = MemoryStore()
         prefix = "social/2026-11-15/"
         store.save_json(prefix + "post.json", {"caption": "caption", "variant": "photo", "image_url": "https://example.org/post.jpg"})
@@ -76,10 +76,9 @@ class AutomationTests(unittest.TestCase):
             on_receipt(value)
         facebook.publish.side_effect = publish
         instagram = Mock()
-        instagram.validate_instagram_account.side_effect = RuntimeError("Account not accessible")
+        instagram.instagram_available.return_value = False
         with tempfile.TemporaryDirectory() as temp, patch("scripts.social_automation.MetaPublisher", side_effect=[facebook, instagram]):
-            with self.assertRaisesRegex(RuntimeError, "instagram: Account not accessible"):
-                run(date(2026, 11, 15), store, Path(temp))
+            run(date(2026, 11, 15), store, Path(temp))
         self.assertEqual(json.loads(store.files[prefix + "publication.json"])["facebook"]["id"], "fb-photo")
         instagram.publish.assert_not_called()
 

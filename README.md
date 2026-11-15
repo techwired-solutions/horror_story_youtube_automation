@@ -49,7 +49,7 @@ For a sourced story:
 python -m scripts.orchestrator --workflow long --minutes 8 --source-file work/source-notes.txt --source-url https://example.org/original-account --topic "The lighthouse keeper"
 ```
 
-Supply those source arguments again when rendering an edited source-based script. Without source notes, the output is explicitly labeled fiction. Estimated Shorts length is checked before synthesis; actual audio plus the one-second tail is checked before rendering. If a part is too long, edit the script or split at a natural turning point and retry. Long-form audio must fall within 20% of the requested target and never exceed 20 minutes. The system fails rather than accelerate or truncate a story. Inspect narration and caption timing; provider timestamps or estimates can be imperfect.
+Supply those source arguments again when rendering an edited source-based script. Without source notes, the output is explicitly labeled fiction. Estimated Shorts length is checked before synthesis; actual audio plus the one-second tail is checked before rendering. Generated Shorts are automatically rewritten or split when too long; edited script files require manual correction. Long-form audio must fall within 20% of the requested target and never exceed 20 minutes. The system fails rather than accelerate or truncate a story. Inspect narration and caption timing; provider timestamps or estimates can be imperfect.
 
 ## Free media and audio
 
@@ -185,8 +185,8 @@ photo format uploads the actual JPEG to Facebook. Already-published daily posts
 are preserved on retries; changing the format affects newly generated dates.
 
 Facebook and Instagram publication are independent. An Instagram account-access
-failure leaves its destination pending and the run reports a failure, but does
-not stop Facebook from publishing its photo. Successful destinations are saved
+failure leaves its destination pending without failing the run or stopping
+Facebook from publishing its photo. Successful destinations are saved
 immediately and skipped on retry. Meta code 100/subcode 33 on the account read
 means the account cannot be accessed with this token; verify the professional
 account is linked to this Page and included in the Meta app's selected assets.
@@ -205,3 +205,44 @@ video tail. Generated Shorts receive up to three audio-preparation attempts,
 rewriting with measured timing feedback if necessary. Every part must pass
 before any render or upload begins. Edited `--script-file` stories are not
 silently rewritten. Provider failures unrelated to duration still fail clearly.
+
+## Current destinations: YouTube, Facebook, automatic Instagram readiness
+
+Instagram is now optional while the Page connection is unavailable. Each daily
+social run and video publish run makes a read-only check of the actual Page-linked
+professional account and token access. If unavailable, Instagram is deferred
+without failing Facebook or YouTube. A stale `INSTAGRAM_ACCOUNT_ID` cannot enable
+posting. Once the Page link and token access work, new content automatically
+publishes to Instagram too; no code switch or workflow form change is required.
+The token still needs the relevant Instagram grants and asset access.
+
+Daily Facebook text/photo publishing continues. Photo plus caption remains the
+default; `SOCIAL_FACEBOOK_FORMAT=text` or `alternate` retains text-only options.
+An Instagram destination is recorded as complete only after a successful publish.
+Rerunning the same saved daily post after connection retries its Instagram copy
+without duplicating the Facebook post. Automatic historical backfill is not enabled.
+
+Video workflows retain their publish control. Enabling it now targets YouTube
+and Facebook, plus Instagram automatically when ready. YouTube visibility follows
+the selected private/unlisted/public setting; Facebook and Instagram publications
+are public. Failures are isolated per platform: an expired YouTube token does not
+prevent a Facebook video upload. Confirmed per-part receipts are saved in the run
+artifact. Keep those receipts with the rendered files when retrying a saved run;
+a fresh generation run is a different video and may create another post.
+
+Facebook receives the actual rendered MP4 through the Page Videos API. Instagram
+reuses the Page-owned video's playable CDN source, requiring access to read that
+source. Videos over 14 minutes are split into shorter Instagram segments at
+caption/sentence boundaries, preserving all content. Staging uploads for these
+segments are unpublished on Facebook. Instagram processing errors after a ready
+connection remain real publication failures, with container IDs saved for retries.
+
+The local CLI can restrict destinations explicitly:
+
+```sh
+python -m scripts.orchestrator --workflow short --topic "The empty station" --upload --video-platforms youtube facebook
+```
+
+The default is all three destinations with Instagram automatically deferred until
+ready. Existing rendered videos are not retroactively uploaded simply by updating
+the code. Future publish runs use the new destinations.

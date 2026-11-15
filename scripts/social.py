@@ -65,10 +65,11 @@ class MetaPublisher:
         self.page_id = os.getenv("FACEBOOK_PAGE_ID") or os.getenv("FACEBOOK_ID")
         self.instagram_id = os.getenv("INSTAGRAM_ACCOUNT_ID")
         self.configured_instagram_id = self.instagram_id
+        self.linked_instagram_id = None
 
     def request(self, method, path, **kwargs):
         response = requests.request(method, f"{self.base}/{path}",
-                                    headers={"Authorization": f"Bearer {self.token}"}, timeout=60, **kwargs)
+                                    headers={"Authorization": f"Bearer {self.token}"}, timeout=kwargs.pop("timeout", 60), **kwargs)
         if not response.ok:
             try:
                 error = response.json().get("error", {})
@@ -113,14 +114,30 @@ class MetaPublisher:
             self.token = page["access_token"]
             linked = (page.get("instagram_business_account") or {}).get("id")
             if linked:
+                self.linked_instagram_id = linked
                 self.instagram_id = linked
         elif "instagram" in platforms:
             page = self.request("GET", self.page_id, params={"fields": "instagram_business_account"})
             linked = (page.get("instagram_business_account") or {}).get("id")
             if linked:
+                self.linked_instagram_id = linked
                 self.instagram_id = linked
         if "instagram" in platforms and not self.instagram_id:
             raise ValueError("Connect an Instagram Business/Creator account to this Page, or set INSTAGRAM_ACCOUNT_ID")
+
+    def instagram_available(self):
+        """Read-only readiness probe; no stale manual ID can enable posting."""
+        try:
+            self.check_permissions(["instagram"])
+            self.resolve_accounts(["instagram"])
+            if not self.linked_instagram_id:
+                print("Instagram deferred: no Page-linked professional account is visible to the token")
+                return False
+            self.validate_instagram_account()
+            return True
+        except (RuntimeError, ValueError, OSError) as error:
+            print(f"Instagram deferred until account access is ready: {error}")
+            return False
 
     def validate_instagram_account(self):
         if self.configured_instagram_id and self.instagram_id != self.configured_instagram_id:

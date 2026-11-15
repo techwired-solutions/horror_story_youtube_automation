@@ -18,6 +18,7 @@ def main():
     parser.add_argument("--post-file", help="Publish reviewed social post.json without regeneration")
     parser.add_argument("--render", action="store_true")
     parser.add_argument("--upload", action="store_true")
+    parser.add_argument("--video-platforms", nargs="+", choices=["youtube", "facebook", "instagram"], default=["youtube", "facebook", "instagram"])
     parser.add_argument("--privacy", choices=["private", "unlisted", "public"], default="private")
     parser.add_argument("--variant", choices=["text", "photo"], default="text")
     parser.add_argument("--platforms", nargs="+", choices=["facebook", "instagram"], default=["facebook"])
@@ -89,21 +90,9 @@ def main():
             Path("token.pickle").write_bytes(base64.b64decode(os.environ["YOUTUBE_TOKEN_PICKLE_BASE64"]))
         if os.getenv("YOUTUBE_CLIENT_SECRET"):
             Path("client_secret.json").write_text(os.environ["YOUTUBE_CLIENT_SECRET"])
-        from scripts.uploader import YouTubeUploader
-        uploader = YouTubeUploader()
-        receipt_path = directory / "publication.json"
-        receipts = json.loads(receipt_path.read_text()) if receipt_path.exists() else {}
-        for index, (title, props, video, props_path) in enumerate(prepared, 1):
-            if str(index) in receipts:
-                continue
-            credits = "\n".join(f"{a['creator']} / {a['provider']}: {a['page_url']}" for a in props["credits"])
-            description = story["disclosure"] + "\n\nStock visuals (illustrative):\n" + credits
-            video_id = uploader.upload_video(str(video), title + (" #shorts" if args.workflow == "short" else ""),
-                                              description[:5000], tags=["horror", "scary stories"], privacy_status=args.privacy)
-            if not video_id:
-                raise RuntimeError("YouTube upload failed")
-            receipts[str(index)] = video_id
-            receipt_path.write_text(json.dumps(receipts, indent=2))
+        from scripts.video_publishing import publish_videos
+        publish_videos(prepared, story, directory, args.privacy, args.video_platforms)
+
 
 
 if __name__ == "__main__":

@@ -91,11 +91,13 @@ def run(day=None, store=None, directory=Path("runs/current")):
     for platform in pending:
         publisher = MetaPublisher()
         try:
-            publisher.check_permissions([platform])
-            publisher.resolve_accounts([platform])
             if platform == "instagram":
-                publisher.validate_instagram_account()
+                if not publisher.instagram_available():
+                    continue
                 verify_public_image(post["image_url"], image)
+            else:
+                publisher.check_permissions([platform])
+                publisher.resolve_accounts([platform])
             publisher.publish(post, [platform], receipt_path,
                               on_receipt=lambda value: store.save_json(f"{prefix}/publication.json", value),
                               accounts_resolved=True)
