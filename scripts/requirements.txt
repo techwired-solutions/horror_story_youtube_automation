@@ -1,5 +1,5 @@
 # Hume is optional: its yanked SDK releases must not block installation.
-google-generativeai
+google-genai>=1.0,<3
 requests
 python-dotenv
 google-api-python-client

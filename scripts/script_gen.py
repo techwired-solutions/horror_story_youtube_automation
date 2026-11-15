@@ -1,17 +1,16 @@
 import os
 import json
-import google.generativeai as genai
 from dotenv import load_dotenv
 from loguru import logger
 
 load_dotenv()
 
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
 class ScriptGenerator:
-    def __init__(self, model_name="gemini-3-flash-preview"):
-        self.model = genai.GenerativeModel(model_name)
+    def __init__(self, model_name=None):
+        self.model_name = model_name or os.getenv("GEMINI_MODEL") or "gemini-3-flash-preview"
         self.nvidia_api_key = os.getenv("NVIDIA_NIM_API_KEY")
+        self.nvidia_model = os.getenv("NVIDIA_MODEL") or "meta/llama-3.3-70b-instruct"
 
     def _generate_with_nvidia(self, prompt: str):
         import requests
@@ -19,7 +18,7 @@ class ScriptGenerator:
         if not self.nvidia_api_key:
             return None
             
-        logger.info("Generating script with NVIDIA NIM (Llama 3.1 70B)...")
+        logger.info(f"Generating script with NVIDIA NIM ({self.nvidia_model})...")
         url = "https://integrate.api.nvidia.com/v1/chat/completions"
         headers = {
             "Authorization": f"Bearer {self.nvidia_api_key}",
@@ -27,7 +26,7 @@ class ScriptGenerator:
             "Accept": "application/json"
         }
         payload = {
-            "model": "meta/llama-3.1-70b-instruct",
+            "model": self.nvidia_model,
             "messages": [
                 {"role": "system", "content": "You are a master horror storyteller and scriptwriter."},
                 {"role": "user", "content": prompt}
@@ -41,7 +40,9 @@ class ScriptGenerator:
                 data = resp.json()
                 return data["choices"][0]["message"]["content"]
             else:
-                logger.error(f"NVIDIA LLM Error: {resp.status_code} {resp.text}")
+                logger.warning(f"NVIDIA model request failed: HTTP {resp.status_code}")
+                if resp.status_code in (404, 410):
+                    self.nvidia_api_key = None # Do not retry a retired model during this run.
                 return None
         except Exception as e:
             logger.error(f"NVIDIA LLM Exception: {e}")
@@ -77,11 +78,21 @@ All JSON keys and string values must be quoted. Provide a resolved ending.
         if not text:
             logger.warning("NVIDIA NIM script generation failed or skipped. Falling back to Gemini...")
             try:
-                response = self.model.generate_content(prompt)
+                from google import genai
+                key = os.getenv("GEMINI_API_KEY")
+                if not key:
+                    raise ValueError("GEMINI_API_KEY is not configured")
+                with genai.Client(api_key=key) as client:
+                    response = client.models.generate_content(
+                        model=self.model_name, contents=prompt,
+                        config={"response_mime_type": "application/json"})
                 text = response.text
             except Exception as e:
                 logger.error(f"Gemini generation failed: {e}")
                 return None
+        if not text:
+            logger.error("Story provider returned empty content")
+            return None
         if "```json" in text:
             text = text.split("```json")[1].split("```")[0]
         elif "```" in text:

@@ -1,15 +1,13 @@
 import os
-import google.generativeai as genai
 from dotenv import load_dotenv
 from loguru import logger
 
 load_dotenv()
 
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
 class DailyTopicSelector:
-    def __init__(self, model_name="gemini-3-flash-preview"):
-        self.model = genai.GenerativeModel(model_name)
+    def __init__(self, model_name=None):
+        self.model_name = model_name or os.getenv("GEMINI_MODEL") or "gemini-3-flash-preview"
 
     def get_daily_topic(self):
         history_path = "assets/used_topics.txt"
@@ -39,7 +37,9 @@ class DailyTopicSelector:
         """
         try:
             logger.info("Fetching daily horror topic from Gemini with history context...")
-            response = self.model.generate_content(prompt)
+            from google import genai
+            with genai.Client(api_key=os.getenv("GEMINI_API_KEY")) as client:
+                response = client.models.generate_content(model=self.model_name, contents=prompt)
             topic = response.text.strip()
             
             # Save to history

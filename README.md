@@ -16,7 +16,7 @@ Scripts are original fiction unless you explicitly supply reviewed source notes 
 
 ## Setup
 
-Python 3.11+, Node 22 and FFmpeg/ffprobe are required. From the repository root:
+Python 3.12+, Node 22 and FFmpeg/ffprobe are required. From the repository root:
 
 ```sh
 python -m venv .venv
@@ -28,7 +28,7 @@ npx remotion browser install
 cd ..
 ```
 
-Copy `.env.example` to `.env` locally, or configure GitHub secrets and repository variables as indicated there. Provider availability, API quotas and narration services are separate from stock-media costs. At least one stock provider key and one script-provider key are needed for generated videos. Hume is tried first only when a compatible SDK is already installed, Kokoro second, Edge TTS last; voice quality and timing differ by provider. Long scripts can exceed a provider's request limits: failures stop production rather than publish missing narration. The legacy Gemini SDK remains in use and should be migrated separately before it becomes unavailable.
+Copy `.env.example` to `.env` locally, or configure GitHub secrets and repository variables as indicated there. Provider availability, API quotas and narration services are separate from stock-media costs. At least one stock provider key and one script-provider key are needed for generated videos. Hume is tried first only when a compatible SDK is already installed, Kokoro second, Edge TTS last; voice quality and timing differ by provider. Long scripts can exceed a provider's request limits: failures stop production rather than publish missing narration. Gemini uses the supported `google-genai` SDK. Optional `GEMINI_MODEL` and `NVIDIA_MODEL` repository variables override model names. NVIDIA defaults to `meta/llama-3.3-70b-instruct`; a 404/410 disables that provider for the rest of the run and falls back to Gemini.
 
 ## Local production
 
@@ -169,3 +169,12 @@ uses Kokoro, with Edge TTS as the fallback, and does not require a Hume key.
 A preinstalled compatible Hume SDK can still be used. If a workflow failed at
 installation, start a **new run from main** after this fix; rerunning the old run
 uses its old commit and can repeat the failure.
+
+### Instagram code 100 diagnostics
+
+Facebook and Instagram permissions are separate grants. Before resuming pending
+Instagram publication, automation inspects the user token's granted scopes and
+reports missing permissions by name. Meta request failures include the upstream
+message, subcode and trace ID, with known tokens and URLs removed. `code 100`
+alone does not establish whether an image, parameter or account permission is
+wrong. A confirmed Facebook receipt is preserved when retrying Instagram.

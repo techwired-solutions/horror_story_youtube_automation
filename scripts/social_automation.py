@@ -84,7 +84,9 @@ def run(day=None, store=None, directory=Path("runs/current")):
     receipt_path.write_text(json.dumps(receipts, indent=2), encoding="utf-8")
     publisher = MetaPublisher()
     # Authenticate both destinations before creating any public feed posts.
-    publisher.resolve_accounts(["facebook", "instagram"])
+    pending = [platform for platform in ("facebook", "instagram") if platform not in receipts]
+    publisher.check_permissions(pending)
+    publisher.resolve_accounts(pending)
     if "instagram" not in receipts:
         verify_public_image(post["image_url"], image)
     publisher.publish(post, ["facebook", "instagram"], receipt_path,

@@ -69,10 +69,36 @@ class MetaPublisher:
         response = requests.request(method, f"{self.base}/{path}",
                                     headers={"Authorization": f"Bearer {self.token}"}, timeout=60, **kwargs)
         if not response.ok:
-            # Avoid leaking credentials and request URLs in exception logs.
-            error = response.json().get("error", {})
-            raise RuntimeError(f"Meta request failed: HTTP {response.status_code}, code {error.get('code')}")
+            try:
+                error = response.json().get("error", {})
+            except ValueError:
+                error = {}
+            import re
+            details = {key: error[key] for key in (
+                "code", "error_subcode", "type", "message", "error_user_title", "error_user_msg", "fbtrace_id") if key in error}
+            safe = json.dumps(details, ensure_ascii=False)
+            for secret in (self.token, os.getenv("META_USER_TOKEN"), os.getenv("META_ACCESS_TOKEN")):
+                if secret:
+                    safe = safe.replace(secret, "<redacted>")
+            safe = re.sub(r'https?://[^\s"<>]+', '<url>', safe)
+            raise RuntimeError(f"Meta request failed: HTTP {response.status_code}, {safe}")
         return response.json()
+
+    def check_permissions(self, platforms):
+        # User grants can be inspected before exchanging for a Page token.
+        if not os.getenv("META_USER_TOKEN") or os.getenv("META_ACCESS_TOKEN"):
+            return
+        result = self.request("GET", "me/permissions")
+        granted = {item["permission"] for item in result.get("data", []) if item.get("status") == "granted"}
+        required = set()
+        if "facebook" in platforms:
+            required.add("pages_manage_posts")
+        if "instagram" in platforms:
+            required.update({"instagram_basic", "instagram_content_publish", "pages_read_engagement"})
+        missing = sorted(required - granted)
+        if missing:
+            raise ValueError("META_USER_TOKEN is missing granted permissions: " + ", ".join(missing) +
+                             ". Regenerate the user token in the same Meta app with these permissions and update the GitHub secret.")
 
     def resolve_accounts(self, platforms):
         if not self.page_id:
