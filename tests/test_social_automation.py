@@ -33,15 +33,17 @@ class AutomationTests(unittest.TestCase):
             publisher = Mock()
             def publish(post, platforms, path, on_receipt, accounts_resolved):
                 self.assertTrue(accounts_resolved)
-                on_receipt({"facebook": {"id": "fb"}})
-                on_receipt({"facebook": {"id": "fb"}, "instagram": {"id": "ig"}})
+                receipts = json.loads(Path(path).read_text())
+                receipts[platforms[0]] = {"id": platforms[0] + "-post"}
+                Path(path).write_text(json.dumps(receipts))
+                on_receipt(receipts)
             publisher.publish.side_effect = publish
             with patch("scripts.social_automation.prepare_daily", side_effect=prepare) as generate, patch("scripts.social_automation.verify_public_image") as verify, patch("scripts.social_automation.MetaPublisher", return_value=publisher) as factory:
                 run(date(2026, 11, 15), store, directory)
                 run(date(2026, 11, 15), store, directory)
                 self.assertEqual(generate.call_count, 1)
-                self.assertEqual(factory.call_count, 1)
-                self.assertEqual(publisher.publish.call_count, 1)
+                self.assertEqual(factory.call_count, 2)
+                self.assertEqual(publisher.publish.call_count, 2)
                 self.assertEqual(verify.call_count, 1)
         self.assertIn("social/2026-11-15/post.jpg", store.files)
         self.assertIn("instagram", json.loads(store.files["social/2026-11-15/publication.json"]))
@@ -60,6 +62,26 @@ class AutomationTests(unittest.TestCase):
             args = factory.return_value.publish.call_args.args
             self.assertIn("facebook", json.loads(Path(args[2]).read_text()))
             self.assertEqual(args[0]["caption"], "Original caption")
+
+    def test_instagram_access_failure_does_not_block_facebook_photo(self):
+        store = MemoryStore()
+        prefix = "social/2026-11-15/"
+        store.save_json(prefix + "post.json", {"caption": "caption", "variant": "photo", "image_url": "https://example.org/post.jpg"})
+        store.write(prefix + "post.jpg", b"jpeg")
+        facebook = Mock()
+        def publish(post, platforms, path, on_receipt, accounts_resolved):
+            self.assertEqual(post["variant"], "photo")
+            value = {"facebook": {"id": "fb-photo"}}
+            Path(path).write_text(json.dumps(value))
+            on_receipt(value)
+        facebook.publish.side_effect = publish
+        instagram = Mock()
+        instagram.validate_instagram_account.side_effect = RuntimeError("Account not accessible")
+        with tempfile.TemporaryDirectory() as temp, patch("scripts.social_automation.MetaPublisher", side_effect=[facebook, instagram]):
+            with self.assertRaisesRegex(RuntimeError, "instagram: Account not accessible"):
+                run(date(2026, 11, 15), store, Path(temp))
+        self.assertEqual(json.loads(store.files[prefix + "publication.json"])["facebook"]["id"], "fb-photo")
+        instagram.publish.assert_not_called()
 
     def test_completed_receipt_needs_no_meta_credentials(self):
         with tempfile.TemporaryDirectory() as temp, patch.dict("os.environ", {"META_GRAPH_API_VERSION": "vTEST", "META_ACCESS_TOKEN": "test"}):

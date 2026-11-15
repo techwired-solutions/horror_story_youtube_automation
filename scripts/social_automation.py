@@ -86,17 +86,23 @@ def run(day=None, store=None, directory=Path("runs/current")):
     (directory / "caption.txt").write_text(post["caption"], encoding="utf-8")
     receipt_path = directory / "publication.json"
     receipt_path.write_text(json.dumps(receipts, indent=2), encoding="utf-8")
-    publisher = MetaPublisher()
-    # Authenticate both destinations before creating any public feed posts.
+    failures = []
     pending = [platform for platform in ("facebook", "instagram") if platform not in receipts]
-    publisher.check_permissions(pending)
-    publisher.resolve_accounts(pending)
-    if "instagram" not in receipts:
-        publisher.validate_instagram_account()
-        verify_public_image(post["image_url"], image)
-    publisher.publish(post, ["facebook", "instagram"], receipt_path,
-                      on_receipt=lambda value: store.save_json(f"{prefix}/publication.json", value),
-                      accounts_resolved=True)
+    for platform in pending:
+        publisher = MetaPublisher()
+        try:
+            publisher.check_permissions([platform])
+            publisher.resolve_accounts([platform])
+            if platform == "instagram":
+                publisher.validate_instagram_account()
+                verify_public_image(post["image_url"], image)
+            publisher.publish(post, [platform], receipt_path,
+                              on_receipt=lambda value: store.save_json(f"{prefix}/publication.json", value),
+                              accounts_resolved=True)
+        except (RuntimeError, ValueError, OSError) as error:
+            failures.append(f"{platform}: {error}")
+    if failures:
+        raise RuntimeError("Pending social destinations failed; successful posts are saved and will be skipped on retry. " + " | ".join(failures))
     print(f"Daily social publication completed for {day}")
 
 

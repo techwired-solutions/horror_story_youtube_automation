@@ -183,3 +183,10 @@ wrong. A confirmed Facebook receipt is preserved when retrying Instagram.
 A photo credit link in a caption is attribution, not an attachment. The default
 photo format uploads the actual JPEG to Facebook. Already-published daily posts
 are preserved on retries; changing the format affects newly generated dates.
+
+Facebook and Instagram publication are independent. An Instagram account-access
+failure leaves its destination pending and the run reports a failure, but does
+not stop Facebook from publishing its photo. Successful destinations are saved
+immediately and skipped on retry. Meta code 100/subcode 33 on the account read
+means the account cannot be accessed with this token; verify the professional
+account is linked to this Page and included in the Meta app's selected assets.
