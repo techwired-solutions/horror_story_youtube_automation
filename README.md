@@ -28,7 +28,7 @@ npx remotion browser install
 cd ..
 ```
 
-Copy `.env.example` to `.env` locally, or configure GitHub secrets and repository variables as indicated there. Provider availability, API quotas and narration services are separate from stock-media costs. At least one stock provider key and one script-provider key are needed for generated videos. Hume is tried first, Kokoro second, Edge TTS last; voice quality and timing differ by provider. Long scripts can exceed a provider's request limits: failures stop production rather than publish missing narration. The legacy Gemini SDK remains in use and should be migrated separately before it becomes unavailable.
+Copy `.env.example` to `.env` locally, or configure GitHub secrets and repository variables as indicated there. Provider availability, API quotas and narration services are separate from stock-media costs. At least one stock provider key and one script-provider key are needed for generated videos. Hume is tried first only when a compatible SDK is already installed, Kokoro second, Edge TTS last; voice quality and timing differ by provider. Long scripts can exceed a provider's request limits: failures stop production rather than publish missing narration. The legacy Gemini SDK remains in use and should be migrated separately before it becomes unavailable.
 
 ## Local production
 
@@ -158,3 +158,14 @@ Never put these credentials in chat or commit them. Google external OAuth apps
 in Testing normally issue refresh tokens that expire after seven days for
 YouTube scopes; use the appropriate production OAuth configuration for durable
 automation, completing any Google verification requirements that apply.
+
+### Hume package installation failure
+
+Hume is an optional narration integration and is no longer in the required pip
+installation. The reported `No matching distribution found for hume>=0.8.0`
+error follows pip skipping yanked Hume releases; changing Python is not the fix
+for that failure. We do not force-install a yanked release. Normal installation
+uses Kokoro, with Edge TTS as the fallback, and does not require a Hume key.
+A preinstalled compatible Hume SDK can still be used. If a workflow failed at
+installation, start a **new run from main** after this fix; rerunning the old run
+uses its old commit and can repeat the failure.

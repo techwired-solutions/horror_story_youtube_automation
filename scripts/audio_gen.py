@@ -457,6 +457,9 @@ class AudioGenerator:
             logger.error("All Hume API keys failed or exhausted credits.")
             return None
 
+        except ImportError:
+            logger.info("Optional Hume SDK is unavailable; using Kokoro/Edge narration instead.")
+            return None
         except Exception as e:
             logger.error(f"Hume generation pipeline failed: {e}")
             return None
