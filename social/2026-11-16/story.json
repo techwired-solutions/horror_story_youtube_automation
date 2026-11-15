@@ -1,0 +1,53 @@
+{
+  "title": "The Red Door Fits",
+  "story_kind": "fiction",
+  "parts": [
+    {
+      "part_number": 1,
+      "music_mood": "unsettling ambient drone",
+      "beats": [
+        {
+          "text": "Elias noted the cabin near the northern ridge at dawn, its red door peeling like a deep sunburn against the grey mist.",
+          "voice": "male",
+          "delivery": "calm",
+          "pause_after": 0.8,
+          "image_prompt": "monochrome dark forest with a small cabin, red door stands out, heavy fog",
+          "stock_query": "foggy pine forest cabin",
+          "animation_type": "zoom",
+          "duration_estimate": 12.378947368421054
+        },
+        {
+          "text": "By noon, he found the same structure three miles south, identical down to the jagged crack in the upper window, and he whispered, 'It fits just right.'",
+          "voice": "male",
+          "delivery": "unease",
+          "pause_after": 1.0,
+          "image_prompt": "monochrome forest clearing with the same cabin, low angle, eerie lighting",
+          "stock_query": "dark isolated cabin",
+          "animation_type": "zoom",
+          "duration_estimate": 15.210526315789474
+        },
+        {
+          "text": "The map insisted this was impossible, yet when he reached the valley floor, the red door was waiting there again, humming with a soft, copper heat.",
+          "voice": "male",
+          "delivery": "dread",
+          "pause_after": 1.5,
+          "image_prompt": "monochrome close up of a weathered red wooden door in a forest",
+          "stock_query": "old wooden door forest",
+          "animation_type": "zoom",
+          "duration_estimate": 15.18421052631579
+        },
+        {
+          "text": "He stepped inside to find no floor, only his own silhouette carved into the frame, and as the wood pressed against his spine, he knew it fit just right.",
+          "voice": "male",
+          "delivery": "reveal",
+          "pause_after": 2.0,
+          "image_prompt": "monochrome interior of a cabin looking out into a forest, man's silhouette merged with door frame",
+          "stock_query": "dark doorway silhouette",
+          "animation_type": "zoom",
+          "duration_estimate": 17.263157894736842
+        }
+      ]
+    }
+  ],
+  "disclosure": "An original fictional horror story. Visuals are illustrative."
+}
