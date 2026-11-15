@@ -67,8 +67,9 @@ again does not intentionally create another pair of posts.
 Each run creates an original fictional micro-story, automatically searches
 Pexels and Pixabay for a photo, builds a dark 1080 x 1350 JPEG with a restrained
 opening excerpt, and puts the full story in the caption. If stock is unavailable,
-it uses a generated text card. Facebook alternates native text-only posts and
-photo-with-text posts on successive dates. Instagram always gets the JPEG plus
+it uses a generated text card. Facebook attaches the generated photo card and story caption every day by
+default. Optional repository variable `SOCIAL_FACEBOOK_FORMAT=text` selects
+native text-only posts; `alternate` rotates text and photo posts. Instagram always gets the JPEG plus
 caption; Instagram has no native text-only feed post.
 
 There is no prepared-run ID, image URL, platform selection, topic field, manual
@@ -178,3 +179,7 @@ reports missing permissions by name. Meta request failures include the upstream
 message, subcode and trace ID, with known tokens and URLs removed. `code 100`
 alone does not establish whether an image, parameter or account permission is
 wrong. A confirmed Facebook receipt is preserved when retrying Instagram.
+
+A photo credit link in a caption is attribution, not an attachment. The default
+photo format uploads the actual JPEG to Facebook. Already-published daily posts
+are preserved on retries; changing the format affects newly generated dates.

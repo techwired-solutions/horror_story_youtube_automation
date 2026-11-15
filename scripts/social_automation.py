@@ -40,8 +40,12 @@ def prepare_daily(directory, day):
                 break
             except (RuntimeError, OSError):
                 continue
-        # Facebook alternates native text and photo posts; Instagram always gets a card.
-        variant = "text" if day.toordinal() % 2 else "photo"
+        # Attach the generated image by default; native text remains an opt-in setting.
+        variant = os.getenv("SOCIAL_FACEBOOK_FORMAT") or "photo"
+        if variant == "alternate":
+            variant = "text" if day.toordinal() % 2 else "photo"
+        if variant not in {"text", "photo"}:
+            raise ValueError("SOCIAL_FACEBOOK_FORMAT must be photo, text or alternate")
         try:
             post = prepare_post(story, directory, variant, photo)
         except ValueError:
