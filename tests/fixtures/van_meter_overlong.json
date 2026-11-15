@@ -1,0 +1,152 @@
+{
+  "title": "The Light of Van Meter",
+  "story_kind": "fiction",
+  "parts": [
+    {
+      "part_number": 1,
+      "music_mood": "low dark drone",
+      "beats": [
+        {
+          "text": "The following is a work of fiction. While it draws from the 1903 folklore of Van Meter, Iowa, the characters and private moments are imagined.",
+          "voice": "male",
+          "delivery": "calm",
+          "pause_after": 1,
+          "image_prompt": "monochrome grainy close up of a 1900s oil lamp flickering on a wooden table",
+          "stock_query": "oil lamp flickering",
+          "animation_type": "zoom",
+          "duration_estimate": 10
+        },
+        {
+          "text": "Elias Thorne sat alone in his farmhouse, the Iowa wind pressing against the glass like a desperate stranger trying to get inside.",
+          "voice": "male",
+          "delivery": "unease",
+          "pause_after": 0.5,
+          "image_prompt": "monochrome exterior of an isolated 1900s farmhouse in a thick fog",
+          "stock_query": "old farmhouse night fog",
+          "animation_type": "zoom",
+          "duration_estimate": 12
+        },
+        {
+          "text": "His wife's chair sat empty across from him, and the grief made the house feel larger and colder than it ever had before.",
+          "voice": "male",
+          "delivery": "intimate",
+          "pause_after": 0.8,
+          "image_prompt": "monochrome empty rocking chair in a dimly lit corner of a wooden room",
+          "stock_query": "empty rocking chair dark",
+          "animation_type": "zoom",
+          "duration_estimate": 11
+        },
+        {
+          "text": "A sharp, chemical odor began to drift down from the ceiling, the unmistakable, choking stench of burning sulfur and wet ash.",
+          "voice": "male",
+          "delivery": "unease",
+          "pause_after": 0.5,
+          "image_prompt": "monochrome low angle shot of a dark wooden ceiling with faint smoke drifting down",
+          "stock_query": "dark smoke ceiling",
+          "animation_type": "zoom",
+          "duration_estimate": 12
+        },
+        {
+          "text": "He heard a heavy thud on the roof, followed by the slow, rhythmic scraping of something long and sharp dragging across the shingles.",
+          "voice": "male",
+          "delivery": "dread",
+          "pause_after": 1.2,
+          "image_prompt": "monochrome shot of the dark roofline of a house against a misty sky",
+          "stock_query": "dark roof night mist",
+          "animation_type": "zoom",
+          "duration_estimate": 12
+        },
+        {
+          "text": "Elias stepped onto his porch, his breath hitching as he whispered the phrase his grandmother once used: the light remembers what the dark forgets.",
+          "voice": "male",
+          "delivery": "whisper",
+          "pause_after": 0.8,
+          "image_prompt": "monochrome close up of a man's face looking up in fear with visible breath",
+          "stock_query": "man looking up night fog",
+          "animation_type": "zoom",
+          "duration_estimate": 13
+        },
+        {
+          "text": "Perched on the edge of the barn was a silhouette that defied logic, a winged humanoid standing nine feet tall, its skin looking like polished lead.",
+          "voice": "male",
+          "delivery": "dread",
+          "pause_after": 1,
+          "image_prompt": "monochrome silhouette of a giant winged creature perched on a barn roof in the fog",
+          "stock_query": "creature silhouette roof",
+          "animation_type": "zoom",
+          "duration_estimate": 13
+        },
+        {
+          "text": "It did not move with the twitching chaos of an animal; it watched Elias with a terrifying, calculated stillness that felt like a trap.",
+          "voice": "male",
+          "delivery": "unease",
+          "pause_after": 0.5,
+          "image_prompt": "monochrome long shot of the creature stationary against the grey sky",
+          "stock_query": "monochrome dark horizon",
+          "animation_type": "zoom",
+          "duration_estimate": 12
+        },
+        {
+          "text": "The creature took flight, its massive wings beating the air with a sound like heavy carpets being struck against a stone wall.",
+          "voice": "male",
+          "delivery": "dread",
+          "pause_after": 0.8,
+          "image_prompt": "monochrome blurry shot of large wings unfolding in the dark mist",
+          "stock_query": "wings night sky",
+          "animation_type": "zoom",
+          "duration_estimate": 11
+        },
+        {
+          "text": "Elias followed the smell to the abandoned coal mine at the edge of town, where the creature waited by the gaping black entrance.",
+          "voice": "male",
+          "delivery": "unease",
+          "pause_after": 1.8,
+          "image_prompt": "monochrome entrance to an old abandoned mine shaft overgrown with weeds",
+          "stock_query": "abandoned mine entrance",
+          "animation_type": "zoom",
+          "duration_estimate": 12
+        },
+        {
+          "text": "A blunt, protruding horn on the creature's forehead suddenly ignited, casting a brilliant, blinding light that cut through the darkness like a blade.",
+          "voice": "male",
+          "delivery": "reveal",
+          "pause_after": 0.8,
+          "image_prompt": "monochrome blinding white light centered in a dark frame piercing through fog",
+          "stock_query": "bright light fog night",
+          "animation_type": "zoom",
+          "duration_estimate": 13
+        },
+        {
+          "text": "In that radiance, Elias saw the faces of the lost, a swirling gallery of memories that seemed to pull the very soul from his chest.",
+          "voice": "male",
+          "delivery": "whisper",
+          "pause_after": 0.6,
+          "image_prompt": "monochrome ethereal faces swirling in a tunnel of white light",
+          "stock_query": "ethereal light tunnel",
+          "animation_type": "zoom",
+          "duration_estimate": 11
+        },
+        {
+          "text": "The light remembers what the dark forgets, he muttered, finally understanding that the visitor wasn't there to hunt, but to collect.",
+          "voice": "male",
+          "delivery": "ending",
+          "pause_after": 0.5,
+          "image_prompt": "monochrome shot of the man walking slowly into the bright light of the mine shaft",
+          "stock_query": "walking into light",
+          "animation_type": "zoom",
+          "duration_estimate": 12
+        },
+        {
+          "text": "When the townspeople arrived at dawn, they found only the lingering scent of sulfur and a single, impossible footprint in the cooling mud.",
+          "voice": "male",
+          "delivery": "ending",
+          "pause_after": 2,
+          "image_prompt": "monochrome close up of a large strange footprint in the mud as fog rolls over it",
+          "stock_query": "footprint in mud night",
+          "animation_type": "zoom",
+          "duration_estimate": 13
+        }
+      ]
+    }
+  ]
+}

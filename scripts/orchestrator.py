@@ -47,9 +47,10 @@ def main():
             topic = DailyTopicSelector().get_daily_topic()
         from scripts.script_gen import ScriptGenerator
         source = Path(args.source_file).read_text(encoding="utf-8") if args.source_file else ""
-        story = ScriptGenerator().generate_horror_script(topic, args.workflow, args.minutes, source)
+        generator = ScriptGenerator()
+        story = generator.generate_horror_script(topic, args.workflow, args.minutes, source)
         if not story:
-            raise RuntimeError("Story generation failed; nothing published")
+            raise RuntimeError(f"Story generation failed after automatic repair: {generator.last_error}; nothing published")
     story["story_kind"] = "dramatized_source" if args.source_file else "fiction"
     story["disclosure"] = (f"Dramatized account based on supplied source notes. Paranormal claims are unverified. Source: {args.source_url}"
                            if args.source_file else "An original fictional horror story.")
@@ -66,21 +67,23 @@ def main():
         return
     from scripts.props_builder import PropsBuilder
     builder = PropsBuilder()
-    prepared = []
-    # Prepare and validate every part before uploading any part.
-    for part in story["parts"]:
-        number = part["part_number"]
-        title = story["title"] + (f" — Part {number}" if len(story["parts"]) > 1 else "")
-        props_path = directory / f"props-{number}.json"
-        props = builder.build_props(part, title, number, str(props_path), args.workflow, args.minutes)
-        if not props:
-            raise RuntimeError("Media preparation failed")
-        video = (directory / f"part-{number}.mp4").resolve()
+    from scripts.video_preparation import prepare_video_parts
+    rewrite = None
+    if not args.script_file and args.workflow == "short":
+        def rewrite(previous, timing_error):
+            return generator.generate_horror_script(
+                topic, args.workflow, args.minutes, source,
+                repair_feedback=("\nActual synthesized narration failed timing: " + timing_error +
+                                 "\nRewrite the same plot more concisely, preserving all essential events and the ending. "
+                                 "Target 160-220 words per part to allow this narrator's deliberate pauses. "
+                                 "Use two parts only if needed. Previous story:\n" + json.dumps(previous)))
+    story, prepared = prepare_video_parts(story, builder, directory, args.workflow, args.minutes, rewrite)
+    # Render only after every part has passed the actual narration duration check.
+    for title, props, video, props_path in prepared:
         if args.render or args.upload:
             subprocess.run(["npx.cmd" if os.name == "nt" else "npx", "remotion", "render",
                             "LongForm" if args.workflow == "long" else "Shorts", str(video),
                             "--props", str(props_path.resolve())], cwd="remotion-video", check=True)
-        prepared.append((title, props, video))
     if args.upload:
         if os.getenv("YOUTUBE_TOKEN_PICKLE_BASE64"):
             Path("token.pickle").write_bytes(base64.b64decode(os.environ["YOUTUBE_TOKEN_PICKLE_BASE64"]))
@@ -90,7 +93,7 @@ def main():
         uploader = YouTubeUploader()
         receipt_path = directory / "publication.json"
         receipts = json.loads(receipt_path.read_text()) if receipt_path.exists() else {}
-        for index, (title, props, video) in enumerate(prepared, 1):
+        for index, (title, props, video, props_path) in enumerate(prepared, 1):
             if str(index) in receipts:
                 continue
             credits = "\n".join(f"{a['creator']} / {a['provider']}: {a['page_url']}" for a in props["credits"])

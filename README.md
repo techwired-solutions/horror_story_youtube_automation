@@ -28,7 +28,7 @@ npx remotion browser install
 cd ..
 ```
 
-Copy `.env.example` to `.env` locally, or configure GitHub secrets and repository variables as indicated there. Provider availability, API quotas and narration services are separate from stock-media costs. At least one stock provider key and one script-provider key are needed for generated videos. Hume is tried first only when a compatible SDK is already installed, Kokoro second, Edge TTS last; voice quality and timing differ by provider. Long scripts can exceed a provider's request limits: failures stop production rather than publish missing narration. Gemini uses the supported `google-genai` SDK. Optional `GEMINI_MODEL` and `NVIDIA_MODEL` repository variables override model names. NVIDIA defaults to `meta/llama-3.3-70b-instruct`; a 404/410 disables that provider for the rest of the run and falls back to Gemini.
+Copy `.env.example` to `.env` locally, or configure GitHub secrets and repository variables as indicated there. Provider availability, API quotas and narration services are separate from stock-media costs. At least one stock provider key and one script-provider key are needed for generated videos. Hume is tried first only when a compatible SDK is already installed, Kokoro second, Edge TTS last; voice quality and timing differ by provider. Long scripts can exceed a provider's request limits: failures stop production rather than publish missing narration. Gemini uses the supported `google-genai` SDK. Optional `GEMINI_MODEL` and `NVIDIA_MODEL` repository variables override model names. NVIDIA chooses a supported instruction model from its live model catalog; a 404/410 removes that model from the current run and falls back to the next candidate or Gemini. An explicit `NVIDIA_MODEL` bypasses catalog selection.
 
 ## Local production
 
@@ -190,3 +190,18 @@ not stop Facebook from publishing its photo. Successful destinations are saved
 immediately and skipped on retry. Meta code 100/subcode 33 on the account read
 means the account cannot be accessed with this token; verify the professional
 account is linked to this Page and included in the Meta app's selected assets.
+
+### Automatic Shorts duration repair
+
+Draft validation logs actual word counts and estimated seconds per part. The
+model receives up to three attempts, with the validation failure and previous
+draft supplied as rewrite feedback. On the final attempt, a single overlong
+story can be divided into at most two parts at complete beat boundaries, with
+both parts within the safe estimate. All story beats and their order are
+preserved by splitting; no narration is truncated or accelerated.
+
+Actual synthesized audio is checked independently, including the one-second
+video tail. Generated Shorts receive up to three audio-preparation attempts,
+rewriting with measured timing feedback if necessary. Every part must pass
+before any render or upload begins. Edited `--script-file` stories are not
+silently rewritten. Provider failures unrelated to duration still fail clearly.

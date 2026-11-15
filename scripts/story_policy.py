@@ -15,12 +15,24 @@ invent citations, quotations or claims that an imagined event really happened.
 Use original wording; do not copy Reddit or other copyrighted stories."""
 
 
-def validate_story(story, mode, minutes=10):
+SHORT_ESTIMATE_LIMIT = 175
+
+
+class ShortDurationError(ValueError):
+    pass
+
+
+class NarrationDurationError(ValueError):
+    pass
+
+
+def validate_story(story, mode, minutes=10, allow_short_split=False):
     if not isinstance(story, dict) or not isinstance(story.get("title"), str) or not story["title"].strip():
         raise ValueError("Story needs a nonempty title")
     parts = story.get("parts", [])
     if not isinstance(parts, list) or not 1 <= len(parts) <= (2 if mode == "short" else 1):
         raise ValueError("Shorts allow one or two parts; other formats require one")
+    estimates = []
     for number, part in enumerate(parts, 1):
         part["part_number"] = number
         beats = part.get("beats", [])
@@ -38,8 +50,26 @@ def validate_story(story, mode, minutes=10):
                 beat["delivery"] = "dread"
             beat["duration_estimate"] = len(beat["text"].split()) / 1.9 + pause
             estimate += beat["duration_estimate"]
-        if mode == "short" and estimate > 175:
-            raise ValueError("Short part exceeds the safe narration estimate; rewrite before synthesis")
+        estimates.append(estimate)
+    if mode == "short" and any(seconds > SHORT_ESTIMATE_LIMIT for seconds in estimates):
+        if allow_short_split and len(parts) == 1:
+            beats = parts[0]["beats"]
+            total = estimates[0]
+            choices = []
+            elapsed = 0
+            for cut in range(1, len(beats)):
+                elapsed += beats[cut - 1]["duration_estimate"]
+                if max(elapsed, total - elapsed) <= SHORT_ESTIMATE_LIMIT:
+                    # Prefer a pause just before a reveal, then balanced part lengths.
+                    choices.append((beats[cut].get("delivery") != "reveal", abs(total - 2 * elapsed), cut))
+            if choices:
+                cut = min(choices)[2]
+                story["parts"] = [dict(parts[0], part_number=1, beats=beats[:cut]),
+                                  dict(parts[0], part_number=2, beats=beats[cut:])]
+                return validate_story(story, mode, minutes)
+        details = "; ".join(f"part {index}: {sum(len(b['text'].split()) for b in part['beats'])} words, {seconds:.1f}s estimated"
+                            for index, (part, seconds) in enumerate(zip(parts, estimates), 1))
+        raise ShortDurationError(f"Shorts duration budget exceeded ({details}); maximum {SHORT_ESTIMATE_LIMIT}s estimated per part")
     return story
 
 
@@ -48,6 +78,6 @@ def check_render_duration(seconds, mode, minutes=10):
         raise ValueError("Invalid narration duration")
     # Includes the one-second video tail.
     if mode == "short" and seconds + 1 > 180:
-        raise ValueError("Narration exceeds Shorts limit; rewrite/split at a story beat, never speed up or truncate")
+        raise NarrationDurationError(f"Measured narration is {seconds:.1f}s plus a 1s tail, exceeding the 180s Shorts limit")
     if mode == "long" and not (minutes * 60 * 0.8 <= seconds <= min(1200, minutes * 60 * 1.2)):
-        raise ValueError("Long-form narration missed the requested duration; rewrite before rendering")
+        raise NarrationDurationError(f"Measured narration is {seconds:.1f}s; requested {minutes} minutes")
