@@ -36,6 +36,20 @@ class ProviderDiagnosticsTests(unittest.TestCase):
                 publisher.check_permissions(["instagram"])
             publisher.request.assert_called_once_with("GET", "me/permissions")
 
+    def test_linked_instagram_account_overrides_stale_configured_id(self):
+        with patch.dict(os.environ, {"META_GRAPH_API_VERSION": "vTEST", "META_USER_TOKEN": "user-token", "META_ACCESS_TOKEN": "", "FACEBOOK_ID": "page", "FACEBOOK_PAGE_ID": "", "INSTAGRAM_ACCOUNT_ID": "wrong-personal-id"}):
+            publisher = MetaPublisher()
+            publisher.request = Mock(return_value={"access_token": "page-token", "instagram_business_account": {"id": "linked-professional-id"}})
+            publisher.resolve_accounts(["instagram"])
+            self.assertEqual(publisher.instagram_id, "linked-professional-id")
+
+    def test_page_token_also_discovers_account_when_override_is_set(self):
+        with patch.dict(os.environ, {"META_GRAPH_API_VERSION": "vTEST", "META_ACCESS_TOKEN": "page-token", "FACEBOOK_ID": "page", "FACEBOOK_PAGE_ID": "", "INSTAGRAM_ACCOUNT_ID": "stale-id"}):
+            publisher = MetaPublisher()
+            publisher.request = Mock(return_value={"instagram_business_account": {"id": "linked-id"}})
+            publisher.resolve_accounts(["instagram"])
+            self.assertEqual(publisher.instagram_id, "linked-id")
+
     def test_retired_nvidia_model_is_not_retried(self):
         with patch.dict(os.environ, {"NVIDIA_NIM_API_KEY": "test", "NVIDIA_MODEL": "retired-model"}):
             generator = ScriptGenerator()

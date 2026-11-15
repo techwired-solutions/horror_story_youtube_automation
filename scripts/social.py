@@ -64,6 +64,7 @@ class MetaPublisher:
             raise ValueError("Set META_USER_TOKEN or META_ACCESS_TOKEN")
         self.page_id = os.getenv("FACEBOOK_PAGE_ID") or os.getenv("FACEBOOK_ID")
         self.instagram_id = os.getenv("INSTAGRAM_ACCOUNT_ID")
+        self.configured_instagram_id = self.instagram_id
 
     def request(self, method, path, **kwargs):
         response = requests.request(method, f"{self.base}/{path}",
@@ -110,12 +111,26 @@ class MetaPublisher:
             if not page.get("access_token"):
                 raise ValueError("Cannot obtain Page token; check Page access and pages_show_list/pages_read_engagement permissions")
             self.token = page["access_token"]
-            self.instagram_id = self.instagram_id or (page.get("instagram_business_account") or {}).get("id")
-        elif "instagram" in platforms and not self.instagram_id:
+            linked = (page.get("instagram_business_account") or {}).get("id")
+            if linked:
+                self.instagram_id = linked
+        elif "instagram" in platforms:
             page = self.request("GET", self.page_id, params={"fields": "instagram_business_account"})
-            self.instagram_id = (page.get("instagram_business_account") or {}).get("id")
+            linked = (page.get("instagram_business_account") or {}).get("id")
+            if linked:
+                self.instagram_id = linked
         if "instagram" in platforms and not self.instagram_id:
             raise ValueError("Connect an Instagram Business/Creator account to this Page, or set INSTAGRAM_ACCOUNT_ID")
+
+    def validate_instagram_account(self):
+        if self.configured_instagram_id and self.instagram_id != self.configured_instagram_id:
+            print("Using the Instagram professional account linked to the Facebook Page instead of the mismatched configured ID")
+        try:
+            account = self.request("GET", self.instagram_id, params={"fields": "id,username"})
+        except RuntimeError as error:
+            raise RuntimeError("Cannot access the Instagram professional account. Confirm it is linked to this Facebook Page and selected in the Meta app's asset access. " + str(error)) from None
+        if not account.get("id") or not account.get("username"):
+            raise ValueError("The configured account is not an accessible Instagram professional account; use the Page-linked Instagram account")
 
     def publish(self, post, platforms, receipt_path, on_receipt=None, accounts_resolved=False):
         import time

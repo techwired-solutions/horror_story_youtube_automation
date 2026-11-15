@@ -92,6 +92,7 @@ def run(day=None, store=None, directory=Path("runs/current")):
     publisher.check_permissions(pending)
     publisher.resolve_accounts(pending)
     if "instagram" not in receipts:
+        publisher.validate_instagram_account()
         verify_public_image(post["image_url"], image)
     publisher.publish(post, ["facebook", "instagram"], receipt_path,
                       on_receipt=lambda value: store.save_json(f"{prefix}/publication.json", value),

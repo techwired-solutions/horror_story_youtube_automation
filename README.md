@@ -83,7 +83,7 @@ The same Meta app/token needs `pages_show_list`, `pages_read_engagement`,
 `pages_manage_posts`, `instagram_basic` and `instagram_content_publish`, plus the
 appropriate Page access. Connect your Instagram professional account to that
 Page. App review/access requirements depend on which accounts you manage.
-`INSTAGRAM_ACCOUNT_ID` is an optional secret/variable override.
+`INSTAGRAM_ACCOUNT_ID` is an optional fallback when discovery is unavailable. The Page-linked professional account takes precedence over a stale configured ID.
 `META_GRAPH_API_VERSION` is optional and defaults to supported version `v24.0`.
 
 At least one script-provider key (`GEMINI_API_KEY` or `NVIDIA_NIM_API_KEY`) is
