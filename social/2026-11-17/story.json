@@ -1,0 +1,103 @@
+{
+  "title": "The Silver Exchange",
+  "story_kind": "fiction",
+  "parts": [
+    {
+      "part_number": 1,
+      "music_mood": "quiet drone",
+      "beats": [
+        {
+          "text": "Elias smoothed his uniform in the lobby’s silver mirror, finding comfort in his steady gaze during the lonely shift. Fiction.",
+          "voice": "male",
+          "delivery": "calm",
+          "pause_after": 0.8,
+          "image_prompt": "monochrome close up of a hotel clerk smoothing a tie in a mirror, dark fog in background",
+          "stock_query": "hotel clerk mirror monochrome",
+          "animation_type": "zoom",
+          "duration_estimate": 11.326315789473686
+        },
+        {
+          "text": "Mr. Vane approached the desk, his heavy coat drinking the light as he leaned forward to sign the register.",
+          "voice": "male",
+          "delivery": "unease",
+          "pause_after": 0.8,
+          "image_prompt": "shadowy man in heavy coat signing a book in a dark hotel lobby, monochrome",
+          "stock_query": "man signing register monochrome",
+          "animation_type": "zoom",
+          "duration_estimate": 10.8
+        },
+        {
+          "text": "Behind him, the grand mirror showed only the empty hallway; there was no guest visible in the glass.",
+          "voice": "male",
+          "delivery": "dread",
+          "pause_after": 1.0,
+          "image_prompt": "antique mirror showing an empty hallway while a man stands before it, monochrome",
+          "stock_query": "empty mirror reflection monochrome",
+          "animation_type": "zoom",
+          "duration_estimate": 10.473684210526317
+        },
+        {
+          "text": "\"The mirror never lies,\" Elias whispered, his fingers trembling as he slid the key across the cold marble.",
+          "voice": "male",
+          "delivery": "whisper",
+          "pause_after": 0.8,
+          "image_prompt": "close up of trembling hand sliding an antique hotel key across a marble counter, monochrome",
+          "stock_query": "antique key marble monochrome",
+          "animation_type": "zoom",
+          "duration_estimate": 10.273684210526318
+        },
+        {
+          "text": "Vane looked up with weary eyes and a thin smile that didn't reach his reflective, silver pupils.",
+          "voice": "male",
+          "delivery": "dread",
+          "pause_after": 1.2,
+          "image_prompt": "extreme close up of hollow eyes with a silver tint in monochrome lighting",
+          "stock_query": "man eyes hollow monochrome",
+          "animation_type": "zoom",
+          "duration_estimate": 10.147368421052631
+        },
+        {
+          "text": "\"I’ve been looking for a fresh perspective,\" the guest murmured, his hand brushing Elias’s skin with a freezing touch.",
+          "voice": "male",
+          "delivery": "whisper",
+          "pause_after": 1.8,
+          "image_prompt": "monochrome close up of two hands touching over a counter, cold fog swirling",
+          "stock_query": "hands touching monochrome",
+          "animation_type": "zoom",
+          "duration_estimate": 11.8
+        },
+        {
+          "text": "Elias turned back to the glass and gasped as his own reflection began to fade into a gray mist.",
+          "voice": "male",
+          "delivery": "reveal",
+          "pause_after": 1.0,
+          "image_prompt": "a human reflection in a mirror dissolving into smoke and mist, monochrome",
+          "stock_query": "fading reflection smoke monochrome",
+          "animation_type": "zoom",
+          "duration_estimate": 11.0
+        },
+        {
+          "text": "In its place, Vane’s image solidified in the silver, leaving Elias standing there as a formless shadow.",
+          "voice": "male",
+          "delivery": "dread",
+          "pause_after": 0.8,
+          "image_prompt": "a man standing inside a mirror looking out while a shadow stands in the room, monochrome",
+          "stock_query": "shadow man monochrome",
+          "animation_type": "zoom",
+          "duration_estimate": 9.747368421052633
+        },
+        {
+          "text": "The mirror never lies.",
+          "voice": "male",
+          "delivery": "ending",
+          "pause_after": 2.0,
+          "image_prompt": "dark, empty hotel lobby at night, monochrome, heavy fog",
+          "stock_query": "dark hotel lobby fog monochrome",
+          "animation_type": "zoom",
+          "duration_estimate": 4.105263157894736
+        }
+      ]
+    }
+  ],
+  "disclosure": "An original fictional horror story. Visuals are illustrative."
+}
