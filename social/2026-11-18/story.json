@@ -1,0 +1,63 @@
+{
+  "title": "The Hinge of the Jaw",
+  "story_kind": "fiction",
+  "parts": [
+    {
+      "part_number": 1,
+      "music_mood": "low industrial drone",
+      "beats": [
+        {
+          "text": "Elias stood before the heavy oak door, the iron padlock cold against his palm. From the darkness behind the wood, his grandmother’s voice drifted up, smelling of dried lavender.",
+          "voice": "male",
+          "delivery": "calm",
+          "pause_after": 1.0,
+          "image_prompt": "monochrome shot of a heavy wooden cellar door with a large iron padlock in a dark hallway",
+          "stock_query": "old basement door padlock",
+          "animation_type": "zoom",
+          "duration_estimate": 16.263157894736842
+        },
+        {
+          "text": "Stay for tea, Elias, she murmured, the same lilt that had tucked him in for twenty years, despite her burial in the churchyard last spring.",
+          "voice": "male",
+          "delivery": "unease",
+          "pause_after": 0.8,
+          "image_prompt": "monochrome dark cellar stairs disappearing into pitch black shadow",
+          "stock_query": "dark cellar stairs",
+          "animation_type": "zoom",
+          "duration_estimate": 13.957894736842107
+        },
+        {
+          "text": "He fumbled with the rusted key, needing to see her face one last time to soothe the ache in his chest. The bolt slid back with a heavy, final groan.",
+          "voice": "male",
+          "delivery": "dread",
+          "pause_after": 1.0,
+          "image_prompt": "close up of a hand inserting a rusty key into an old lock monochrome",
+          "stock_query": "rusty iron key hand",
+          "animation_type": "zoom",
+          "duration_estimate": 16.789473684210527
+        },
+        {
+          "text": "He swung the door wide to find the stone room perfectly, hauntingly empty, his flashlight cutting through nothing but settling dust and cold air.",
+          "voice": "male",
+          "delivery": "dread",
+          "pause_after": 1.8,
+          "image_prompt": "monochrome wide shot of an empty stone basement room with dust motes",
+          "stock_query": "empty stone basement room",
+          "animation_type": "zoom",
+          "duration_estimate": 14.431578947368422
+        },
+        {
+          "text": "Then, the voice spoke again, not from the shadows, but from the hinge of his own jaw. Stay for tea, he whispered, his own hands moving to lock himself inside.",
+          "voice": "male",
+          "delivery": "reveal",
+          "pause_after": 2.0,
+          "image_prompt": "monochrome close up of a man's face in shadow locking a door from the inside",
+          "stock_query": "locking door from inside",
+          "animation_type": "zoom",
+          "duration_estimate": 17.789473684210527
+        }
+      ]
+    }
+  ],
+  "disclosure": "An original fictional horror story. Visuals are illustrative."
+}
