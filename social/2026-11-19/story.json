@@ -1,0 +1,74 @@
+{
+  "title": "The Frequency of Salt",
+  "story_kind": "fiction",
+  "social_caption": "Elias lived for the silence of the 2026 winter, but the static on frequency 104.2 had started to breathe. The Old Needle lighthouse sat three hundred feet below the Atlantic, yet every night, the radio hissed: the light still holds. His late father always warned that the sea doesn't just drown men; it recruits them. Tonight, the voice on the copper speakers lost its static, becoming Elias’s own voice reporting for duty. He felt the familiar weight of the deep-trench pressure crushing his ribs while he sat in his dry kitchen. As he looked at his reflection, his eyes had turned to cold, rotating glass. The light still holds, he whispered, as the salt-water finally filled his lungs and the cottage dissolved into the dark, hungry waves.",
+  "parts": [
+    {
+      "part_number": 1,
+      "music_mood": "low ambient hum",
+      "beats": [
+        {
+          "text": "Elias preferred the heavy silence of the 2026 November coast, until the static on his workbench radio began to breathe.",
+          "voice": "male",
+          "delivery": "calm",
+          "pause_after": 0.8,
+          "image_prompt": "monochrome shot of a lonely cottage on a foggy cliffside",
+          "stock_query": "foggy coastal cliff house",
+          "animation_type": "zoom",
+          "duration_estimate": 11.326315789473686
+        },
+        {
+          "text": "The Old Needle lighthouse had been submerged in the trench for thirty years, yet its frequency remained stubbornly, impossibly active.",
+          "voice": "male",
+          "delivery": "unease",
+          "pause_after": 1.0,
+          "image_prompt": "close up of a vintage analog radio dial glowing in the dark",
+          "stock_query": "vintage radio dial",
+          "animation_type": "zoom",
+          "duration_estimate": 11.526315789473685
+        },
+        {
+          "text": "Every night, a voice thin as wet parchment repeated the same cryptic assurance: the light still holds.",
+          "voice": "male",
+          "delivery": "dread",
+          "pause_after": 0.8,
+          "image_prompt": "monochrome dark ocean waves with a faint light deep beneath the surface",
+          "stock_query": "dark ocean waves",
+          "animation_type": "zoom",
+          "duration_estimate": 9.747368421052633
+        },
+        {
+          "text": "He felt a strange pull toward the cliffside, a phantom weight in his lungs that tasted of salt and ancient pressure.",
+          "voice": "male",
+          "delivery": "dread",
+          "pause_after": 1.8,
+          "image_prompt": "monochrome slow zoom on a man looking out a window into dark fog",
+          "stock_query": "man looking through window fog",
+          "animation_type": "zoom",
+          "duration_estimate": 12.852631578947369
+        },
+        {
+          "text": "The radio crackled once more, no longer broadcasting static, but the unmistakable sound of Elias’s own voice calling from the abyss.",
+          "voice": "male",
+          "delivery": "reveal",
+          "pause_after": 1.2,
+          "image_prompt": "monochrome silhouette of a sunken lighthouse covered in kelp",
+          "stock_query": "sunken ruins underwater",
+          "animation_type": "zoom",
+          "duration_estimate": 12.252631578947367
+        },
+        {
+          "text": "He looked down as his skin hardened into granite, whispering 'the light still holds' as his kitchen flooded with freezing, deep-trench brine.",
+          "voice": "male",
+          "delivery": "ending",
+          "pause_after": 2.0,
+          "image_prompt": "monochrome close up of stone textured hands and rising dark water",
+          "stock_query": "water flooding dark room",
+          "animation_type": "zoom",
+          "duration_estimate": 13.578947368421053
+        }
+      ]
+    }
+  ],
+  "disclosure": "An original fictional horror story. Visuals are illustrative."
+}
