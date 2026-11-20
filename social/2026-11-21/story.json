@@ -1,0 +1,63 @@
+{
+  "title": "The Silver Halide Secret",
+  "story_kind": "fiction",
+  "parts": [
+    {
+      "part_number": 1,
+      "music_mood": "quiet drone",
+      "beats": [
+        {
+          "text": "Elias kept the 1952 wedding portrait on his nightstand, a monochrome anchor in his drifting, lonely life.",
+          "voice": "male",
+          "delivery": "calm",
+          "pause_after": 0.8,
+          "image_prompt": "extreme close up of an old monochrome wedding photograph on a dark nightstand",
+          "stock_query": "vintage wedding photograph",
+          "animation_type": "zoom",
+          "duration_estimate": 9.747368421052633
+        },
+        {
+          "text": "By sunrise, the image had shifted; his grandmother was no longer smiling at the lens, but looking over her shoulder into the dark woods. The frame knows the truth.",
+          "voice": "male",
+          "delivery": "unease",
+          "pause_after": 0.8,
+          "image_prompt": "blurry monochrome photo of a woman turning away from the camera toward dark trees",
+          "stock_query": "eerie dark woods",
+          "animation_type": "zoom",
+          "duration_estimate": 16.063157894736843
+        },
+        {
+          "text": "He noticed a tiny, blurred figure standing in those distant trees, wearing his own modern sweater and a look of absolute terror.",
+          "voice": "male",
+          "delivery": "dread",
+          "pause_after": 1.0,
+          "image_prompt": "monochrome close up of a small figure in a sweater hidden in the background of a photo",
+          "stock_query": "man in woods",
+          "animation_type": "zoom",
+          "duration_estimate": 12.578947368421053
+        },
+        {
+          "text": "He touched the cold glass, feeling his bedroom dissolve into a grainy, chemical grey while the frame knows the truth.",
+          "voice": "male",
+          "delivery": "whisper",
+          "pause_after": 1.5,
+          "image_prompt": "a hand touching the glass of a picture frame, reflecting a bedroom fading to grey",
+          "stock_query": "hand touching glass",
+          "animation_type": "zoom",
+          "duration_estimate": 12.026315789473685
+        },
+        {
+          "text": "Elias didn't scream as he stepped into the paper, becoming the newest, stillest secret in the family’s frozen history.",
+          "voice": "male",
+          "delivery": "ending",
+          "pause_after": 2.0,
+          "image_prompt": "monochrome wide shot of a man's face appearing as a static image in an old photograph",
+          "stock_query": "blurry monochrome face",
+          "animation_type": "zoom",
+          "duration_estimate": 12.0
+        }
+      ]
+    }
+  ],
+  "disclosure": "An original fictional horror story. Visuals are illustrative."
+}
