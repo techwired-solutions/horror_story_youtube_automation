@@ -1,0 +1,63 @@
+{
+  "title": "The Reflection of Tomorrow",
+  "story_kind": "fiction",
+  "parts": [
+    {
+      "part_number": 1,
+      "music_mood": "low industrial drone",
+      "beats": [
+        {
+          "text": "Elias sat in the booth, the timestamp on Monitor 4 blinking November 22nd, 2026, despite his watch reading the 21st.",
+          "voice": "male",
+          "delivery": "calm",
+          "pause_after": 1.0,
+          "image_prompt": "monochrome grainy security monitor view of a corporate lobby",
+          "stock_query": "security monitor footage",
+          "animation_type": "zoom",
+          "duration_estimate": 11.526315789473685
+        },
+        {
+          "text": "The glitch was a nightly comfort, a window into a quiet tomorrow where he sipped lukewarm coffee and whispered to the silence, 'the glass is holding.'",
+          "voice": "male",
+          "delivery": "unease",
+          "pause_after": 1.0,
+          "image_prompt": "close up of a security guard face in dark shadows holding a cup",
+          "stock_query": "man drinking coffee dark",
+          "animation_type": "zoom",
+          "duration_estimate": 14.68421052631579
+        },
+        {
+          "text": "In the future feed, a figure that looked exactly like him entered the frame, but his movements were stiff, like a marionette with severed strings.",
+          "voice": "male",
+          "delivery": "dread",
+          "pause_after": 1.5,
+          "image_prompt": "grainy CCTV footage of a stiff man walking down a dark hallway",
+          "stock_query": "dark hallway shadows",
+          "animation_type": "zoom",
+          "duration_estimate": 14.657894736842106
+        },
+        {
+          "text": "The future Elias stopped at the camera and tapped the glass from the inside, his eyes flat and white while he mouthed the words, 'the glass is holding.'",
+          "voice": "male",
+          "delivery": "reveal",
+          "pause_after": 2.0,
+          "image_prompt": "close up of a blurry face on a monitor screen with a cracked lens",
+          "stock_query": "cracked glass monitor",
+          "animation_type": "zoom",
+          "duration_estimate": 16.736842105263158
+        },
+        {
+          "text": "As the real monitor cracked under his fingertips, Elias realized the footage wasn't showing him tomorrow, but rather the thing that had just stepped out of the screen behind him.",
+          "voice": "male",
+          "delivery": "ending",
+          "pause_after": 2.0,
+          "image_prompt": "monochrome dark room with a tall shadow standing behind a seated man",
+          "stock_query": "shadow in dark room",
+          "animation_type": "zoom",
+          "duration_estimate": 17.789473684210527
+        }
+      ]
+    }
+  ],
+  "disclosure": "An original fictional horror story. Visuals are illustrative."
+}
