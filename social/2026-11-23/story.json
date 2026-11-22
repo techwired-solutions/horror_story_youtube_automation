@@ -1,0 +1,73 @@
+{
+  "title": "The Midnight Dial",
+  "story_kind": "fiction",
+  "parts": [
+    {
+      "part_number": 1,
+      "music_mood": "low industrial drone",
+      "beats": [
+        {
+          "text": "This is a work of fiction. Elias kept his smartphone in a locked drawer, yet every morning, the call log showed a three-minute conversation at 3:14 AM.",
+          "voice": "male",
+          "delivery": "calm",
+          "pause_after": 0.8,
+          "image_prompt": "monochrome close up of a vintage wooden drawer with a modern smartphone inside, dark shadows, cinematic lighting",
+          "stock_query": "dark drawer smartphone",
+          "animation_type": "zoom",
+          "duration_estimate": 15.010526315789475
+        },
+        {
+          "text": "He never heard the chime, only the heavy, unearned exhaustion of a man who had been talking for hours. 'The connection is established,' he whispered.",
+          "voice": "male",
+          "delivery": "unease",
+          "pause_after": 1.0,
+          "image_prompt": "monochrome shot of a tired man sitting on the edge of a bed, head in hands, thick fog rolling across the floor",
+          "stock_query": "tired man bed night",
+          "animation_type": "zoom",
+          "duration_estimate": 14.157894736842106
+        },
+        {
+          "text": "On November 23, 2026, he finally wore noise-canceling headphones set to trigger a piercing siren at the slightest vibration of the nightstand.",
+          "voice": "male",
+          "delivery": "dread",
+          "pause_after": 0.8,
+          "image_prompt": "monochrome close up of noise-canceling headphones on a dark bedside table, slow camera drift",
+          "stock_query": "headphones nightstand dark",
+          "animation_type": "zoom",
+          "duration_estimate": 12.378947368421054
+        },
+        {
+          "text": "When the phone buzzed against the wood, the alarm jolted him upright into the dark. He snatched the device, pressing it to his ear.",
+          "voice": "male",
+          "delivery": "dread",
+          "pause_after": 1.8,
+          "image_prompt": "monochrome wide shot of a man sitting up suddenly in bed, clutching a glowing phone in a dark room",
+          "stock_query": "man waking up dark room",
+          "animation_type": "zoom",
+          "duration_estimate": 14.431578947368422
+        },
+        {
+          "text": "A dry, familiar voice on the other end spoke with his own slow cadence. 'The connection is established,' the voice said softly.",
+          "voice": "male",
+          "delivery": "whisper",
+          "pause_after": 1.2,
+          "image_prompt": "monochrome extreme close up of a man's ear and the glowing screen of a smartphone, blurry background",
+          "stock_query": "phone to ear dark",
+          "animation_type": "zoom",
+          "duration_estimate": 12.778947368421052
+        },
+        {
+          "text": "'Now please, for our sake, stop trying to wake up.' Elias looked at the screen; the incoming call was coming from his own number.",
+          "voice": "male",
+          "delivery": "reveal",
+          "pause_after": 2.0,
+          "image_prompt": "monochrome close up of a smartphone screen showing the user's own contact name under 'Incoming Call', dark background",
+          "stock_query": "phone screen dark",
+          "animation_type": "zoom",
+          "duration_estimate": 14.631578947368421
+        }
+      ]
+    }
+  ],
+  "disclosure": "An original fictional horror story. Visuals are illustrative."
+}
