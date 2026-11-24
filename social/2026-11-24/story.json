@@ -1,0 +1,93 @@
+{
+  "title": "The Occupant of Room 412",
+  "story_kind": "fiction",
+  "parts": [
+    {
+      "part_number": 1,
+      "music_mood": "low dark drone",
+      "beats": [
+        {
+          "text": "Elena preferred the quiet of the West Wing, where the air tasted of floor wax and stale lilies. This story is a work of fiction.",
+          "voice": "male",
+          "delivery": "calm",
+          "pause_after": 0.8,
+          "image_prompt": "monochrome dark hospital hallway with fog",
+          "stock_query": "dark hospital hallway monochrome",
+          "animation_type": "zoom",
+          "duration_estimate": 13.957894736842107
+        },
+        {
+          "text": "Room 412 had been a storage closet for a decade, yet tonight the call button pulsed a steady, rhythmic amber.",
+          "voice": "male",
+          "delivery": "unease",
+          "pause_after": 1.0,
+          "image_prompt": "glowing call light on a dark hospital door monochrome",
+          "stock_query": "hospital call light dark",
+          "animation_type": "zoom",
+          "duration_estimate": 11.526315789473685
+        },
+        {
+          "text": "The bed is still warm, she whispered to the empty corridor, a habit born of years spent tending to the dying.",
+          "voice": "male",
+          "delivery": "whisper",
+          "pause_after": 0.8,
+          "image_prompt": "nurse silhouette in dark hallway monochrome",
+          "stock_query": "nurse silhouette dark",
+          "animation_type": "zoom",
+          "duration_estimate": 11.852631578947369
+        },
+        {
+          "text": "She unlocked the door, expecting a short circuit, but found the thin mattress perfectly indented by a lingering weight.",
+          "voice": "male",
+          "delivery": "dread",
+          "pause_after": 1.0,
+          "image_prompt": "empty hospital bed with body impression monochrome",
+          "stock_query": "old hospital bed",
+          "animation_type": "zoom",
+          "duration_estimate": 11.0
+        },
+        {
+          "text": "Elena smoothed the sheets, her fingers trembling as she felt a pulse of genuine, human heat beneath the linen.",
+          "voice": "male",
+          "delivery": "unease",
+          "pause_after": 0.5,
+          "image_prompt": "close up of hand touching bed sheet monochrome",
+          "stock_query": "hand touching fabric",
+          "animation_type": "zoom",
+          "duration_estimate": 10.5
+        },
+        {
+          "text": "The bed is still warm.",
+          "voice": "male",
+          "delivery": "whisper",
+          "pause_after": 1.8,
+          "image_prompt": "dark empty hospital room corner monochrome",
+          "stock_query": "dark room corner",
+          "animation_type": "zoom",
+          "duration_estimate": 4.431578947368421
+        },
+        {
+          "text": "She saw her own name on the whiteboard under a discharge date from November 2026 and realized the mirror held no reflection.",
+          "voice": "male",
+          "delivery": "reveal",
+          "pause_after": 1.0,
+          "image_prompt": "whiteboard with name and date in dark room monochrome",
+          "stock_query": "whiteboard writing",
+          "animation_type": "zoom",
+          "duration_estimate": 12.578947368421053
+        },
+        {
+          "text": "Elena wasn't the nurse on duty; she was the patient who simply refused to clock out.",
+          "voice": "male",
+          "delivery": "ending",
+          "pause_after": 2.0,
+          "image_prompt": "empty hospital corridor fading into black fog monochrome",
+          "stock_query": "dark hospital corridor",
+          "animation_type": "zoom",
+          "duration_estimate": 10.421052631578947
+        }
+      ]
+    }
+  ],
+  "disclosure": "An original fictional horror story. Visuals are illustrative."
+}
