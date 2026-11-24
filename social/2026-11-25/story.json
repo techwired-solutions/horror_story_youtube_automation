@@ -1,0 +1,63 @@
+{
+  "title": "The Copper Echo",
+  "story_kind": "fiction",
+  "parts": [
+    {
+      "part_number": 1,
+      "music_mood": "low frequency ambient drone",
+      "beats": [
+        {
+          "text": "Elias sat in the kitchen, the silence of the 2026 winter pressing against his ears. On the counter, the old baby monitor lay face down, its power cord severed months ago.",
+          "voice": "male",
+          "delivery": "calm",
+          "pause_after": 0.8,
+          "image_prompt": "monochrome cinematic shot of a dark kitchen at night, soft fog outside window, slow zoom on a disconnected baby monitor",
+          "stock_query": "dark kitchen night monochrome",
+          "animation_type": "zoom",
+          "duration_estimate": 17.115789473684213
+        },
+        {
+          "text": "A soft crackle emerged from the dead plastic. 'The door is heavy,' a small, familiar voice whispered through the unpowered speaker, vibrating against the cold laminate countertop.",
+          "voice": "male",
+          "delivery": "unease",
+          "pause_after": 1.0,
+          "image_prompt": "extreme close up of a dusty baby monitor speaker in monochrome, dark shadows, slow zoom",
+          "stock_query": "old baby monitor close up",
+          "animation_type": "zoom",
+          "duration_estimate": 15.210526315789474
+        },
+        {
+          "text": "Elias felt the ache of grief turn into a sharp dread as he confirmed the empty battery compartment. 'The door is heavy,' the voice repeated, followed by rhythmic scratching.",
+          "voice": "male",
+          "delivery": "dread",
+          "pause_after": 1.2,
+          "image_prompt": "monochrome shot of trembling hands holding an empty plastic battery compartment, slow zoom",
+          "stock_query": "shaking hands dark",
+          "animation_type": "zoom",
+          "duration_estimate": 16.46315789473684
+        },
+        {
+          "text": "He walked to the nursery, his breath hitching, and pushed the door open to find only an empty, dust-covered crib and the oppressive scent of old lavender.",
+          "voice": "male",
+          "delivery": "whisper",
+          "pause_after": 1.8,
+          "image_prompt": "monochrome view of a dark nursery doorway, shadows stretching across the floor, slow zoom into the darkness",
+          "stock_query": "dark empty nursery",
+          "animation_type": "zoom",
+          "duration_estimate": 16.010526315789473
+        },
+        {
+          "text": "He looked down at the dead monitor; the screen flickered to life, showing a live feed of himself standing in the doorway, filmed from deep inside the floorboards.",
+          "voice": "male",
+          "delivery": "ending",
+          "pause_after": 2.0,
+          "image_prompt": "monochrome close up of a baby monitor screen reflecting a man's face, static on screen, slow zoom",
+          "stock_query": "television static dark",
+          "animation_type": "zoom",
+          "duration_estimate": 16.736842105263158
+        }
+      ]
+    }
+  ],
+  "disclosure": "An original fictional horror story. Visuals are illustrative."
+}
