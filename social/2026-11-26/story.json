@@ -1,0 +1,63 @@
+{
+  "title": "The Final Stop on Route 9",
+  "story_kind": "fiction",
+  "parts": [
+    {
+      "part_number": 1,
+      "music_mood": "low vibrating hum",
+      "beats": [
+        {
+          "text": "The dashboard clock flickers to midnight on November 26th, 2026, casting a pale, sickly light over Elias’s white-knuckled grip on the steering wheel.",
+          "voice": "male",
+          "delivery": "calm",
+          "pause_after": 0.8,
+          "image_prompt": "monochrome close up of a bus driver's hands on a steering wheel, dark foggy windows",
+          "stock_query": "bus driver hands night",
+          "animation_type": "zoom",
+          "duration_estimate": 12.905263157894739
+        },
+        {
+          "text": "In the back row sits a passenger in a damp yellow coat, her face hidden by the thick, freezing fog pressing against the windows.",
+          "voice": "male",
+          "delivery": "unease",
+          "pause_after": 0.8,
+          "image_prompt": "monochrome interior of a dark bus, one passenger in a yellow coat in the back row, fog outside",
+          "stock_query": "interior night bus",
+          "animation_type": "zoom",
+          "duration_estimate": 13.431578947368422
+        },
+        {
+          "text": "She hasn't pulled the cord in twenty miles, and Elias whispers to the empty rearview mirror that the fare is paid in full.",
+          "voice": "male",
+          "delivery": "dread",
+          "pause_after": 1.5,
+          "image_prompt": "monochrome view of a bus rearview mirror reflecting an empty seat and thick fog",
+          "stock_query": "rearview mirror night",
+          "animation_type": "zoom",
+          "duration_estimate": 13.605263157894738
+        },
+        {
+          "text": "He stops at the final depot, but the doors remain sealed shut as the smell of stagnant pond water slowly fills the cabin.",
+          "voice": "male",
+          "delivery": "reveal",
+          "pause_after": 0.8,
+          "image_prompt": "monochrome abandoned bus terminal at night with thick mist swirling around the tires",
+          "stock_query": "abandoned station night",
+          "animation_type": "zoom",
+          "duration_estimate": 12.905263157894739
+        },
+        {
+          "text": "The passenger steps forward and Elias sees his own name on the hospital tag on her wrist, finally realizing the fare is paid in full.",
+          "voice": "male",
+          "delivery": "ending",
+          "pause_after": 2.0,
+          "image_prompt": "monochrome close up of a pale hand with a hospital wristband reaching toward the driver",
+          "stock_query": "pale hand reach night",
+          "animation_type": "zoom",
+          "duration_estimate": 15.157894736842106
+        }
+      ]
+    }
+  ],
+  "disclosure": "An original fictional horror story. Visuals are illustrative."
+}
