@@ -1,0 +1,83 @@
+{
+  "title": "The Postmark from Next Friday",
+  "story_kind": "fiction",
+  "parts": [
+    {
+      "part_number": 1,
+      "music_mood": "quiet drone",
+      "beats": [
+        {
+          "text": "Elias found the first envelope under his door on a Tuesday, though it was postmarked for the following Friday, November 27, 2026.",
+          "voice": "male",
+          "delivery": "calm",
+          "pause_after": 0.8,
+          "image_prompt": "monochrome slow zoom on a dark basement apartment door with a white envelope on the floor",
+          "stock_query": "dark apartment door",
+          "animation_type": "zoom",
+          "duration_estimate": 12.378947368421054
+        },
+        {
+          "text": "The ink is still wet. Inside, a handwritten note thanked him for leaving the apartment so clean for the next occupant.",
+          "voice": "male",
+          "delivery": "unease",
+          "pause_after": 0.8,
+          "image_prompt": "monochrome close up of a handwritten letter on a wooden floor",
+          "stock_query": "white envelope floor",
+          "animation_type": "zoom",
+          "duration_estimate": 11.852631578947369
+        },
+        {
+          "text": "He wasn't moving, yet another letter arrived dated December 1st, describing the quiet passing of the previous tenant in the kitchen.",
+          "voice": "male",
+          "delivery": "dread",
+          "pause_after": 0.8,
+          "image_prompt": "monochrome wide shot of a shadowy kitchen with a single chair",
+          "stock_query": "shadowy kitchen interior",
+          "animation_type": "zoom",
+          "duration_estimate": 11.852631578947369
+        },
+        {
+          "text": "The ink is still wet. He tried to flee, but the deadbolt wouldn't turn, as if the apartment had already evicted his physical form.",
+          "voice": "male",
+          "delivery": "dread",
+          "pause_after": 0.8,
+          "image_prompt": "monochrome close up of a hand struggling with a rusted door lock",
+          "stock_query": "hand on deadbolt",
+          "animation_type": "zoom",
+          "duration_estimate": 13.431578947368422
+        },
+        {
+          "text": "He saw a final envelope slide through the crack, reporting that the unit was now vacant and ready for viewing.",
+          "voice": "male",
+          "delivery": "whisper",
+          "pause_after": 1.5,
+          "image_prompt": "monochrome shot of a letter sliding under a door frame into dark fog",
+          "stock_query": "letter sliding under door",
+          "animation_type": "zoom",
+          "duration_estimate": 12.026315789473685
+        },
+        {
+          "text": "The ink is still wet. Elias looked down and realized he could see the floorboards right through his own feet.",
+          "voice": "male",
+          "delivery": "reveal",
+          "pause_after": 0.8,
+          "image_prompt": "monochrome translucent feet standing on a wooden floor with letters nearby",
+          "stock_query": "translucent hand reaching",
+          "animation_type": "zoom",
+          "duration_estimate": 11.326315789473686
+        },
+        {
+          "text": "He was no longer a resident, just a lingering coldness, finally fading into the monochrome fog of the room.",
+          "voice": "male",
+          "delivery": "ending",
+          "pause_after": 2.0,
+          "image_prompt": "monochrome empty apartment room filled with thick dark fog",
+          "stock_query": "foggy empty apartment",
+          "animation_type": "zoom",
+          "duration_estimate": 12.0
+        }
+      ]
+    }
+  ],
+  "disclosure": "An original fictional horror story. Visuals are illustrative."
+}
