@@ -1,0 +1,73 @@
+{
+  "title": "The Red Door Persistence",
+  "story_kind": "fiction",
+  "parts": [
+    {
+      "part_number": 1,
+      "music_mood": "low eerie drone",
+      "beats": [
+        {
+          "text": "Elias ran his thumb over the peeling red paint of the cabin at Mile 14, certain this structure hadn't been on the survey map yesterday morning.",
+          "voice": "male",
+          "delivery": "calm",
+          "pause_after": 0.8,
+          "image_prompt": "monochrome close up of a hand touching a weathered wooden door in a foggy forest",
+          "stock_query": "foggy woods cabin door",
+          "animation_type": "zoom",
+          "duration_estimate": 14.48421052631579
+        },
+        {
+          "text": "He hiked five miles north toward the ridge to clear his head, but the same grey shingles and rusted latch waited in a completely different clearing.",
+          "voice": "male",
+          "delivery": "unease",
+          "pause_after": 0.8,
+          "image_prompt": "monochrome wide shot of an isolated small cabin in a dense misty forest",
+          "stock_query": "isolated cabin fog",
+          "animation_type": "zoom",
+          "duration_estimate": 14.48421052631579
+        },
+        {
+          "text": "A cold sweat broke as Elias whispered the phrase his mentor once warned him about: the door is already unlocked.",
+          "voice": "male",
+          "delivery": "dread",
+          "pause_after": 0.8,
+          "image_prompt": "monochrome shot of a man's face looking pale and anxious in the shadows",
+          "stock_query": "worried man face shadow",
+          "animation_type": "zoom",
+          "duration_estimate": 11.326315789473686
+        },
+        {
+          "text": "He turned and fled toward the valley, pushing through the brush, only to stumble upon the same porch, now smelling faintly of his own childhood home.",
+          "voice": "male",
+          "delivery": "dread",
+          "pause_after": 0.8,
+          "image_prompt": "monochrome shot of feet running through a foggy forest floor",
+          "stock_query": "running forest fog",
+          "animation_type": "zoom",
+          "duration_estimate": 14.48421052631579
+        },
+        {
+          "text": "He realized with a hollow dread that the door is already unlocked, and the cabin was not moving; the forest was simply folding into it.",
+          "voice": "male",
+          "delivery": "dread",
+          "pause_after": 1.5,
+          "image_prompt": "monochrome close up of a rusted door handle turning slowly",
+          "stock_query": "door handle turning",
+          "animation_type": "zoom",
+          "duration_estimate": 14.657894736842106
+        },
+        {
+          "text": "Inside, his own house keys sat on the kitchen table, and the windows showed only a grey, infinite fog where the rest of the world used to be.",
+          "voice": "male",
+          "delivery": "reveal",
+          "pause_after": 2.0,
+          "image_prompt": "monochrome shot of keys on a dusty wooden table with white fog outside the window",
+          "stock_query": "cabin interior window fog",
+          "animation_type": "zoom",
+          "duration_estimate": 16.736842105263158
+        }
+      ]
+    }
+  ],
+  "disclosure": "An original fictional horror story. Visuals are illustrative."
+}
